@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
-from src.data.filter_bags import filterClass
-from src.data.process_data import processClass
+from src.data.filter_bags import FilterClass
+from src.data.process_data import ProcessorClass
 import argparse
 
 
@@ -13,17 +13,17 @@ def main():
     logger.info('making final data set from raw data')
 
     parser = argparse.ArgumentParser(description="Filter the images and find corresponding imu and mqtt samples for each image. Processed files go in data/processed folder")
-    parser.add_argument("input_folder", help="Input folder containing bag files.", default = "")
-    parser.add_argument("--skip_imgs", help="Whether to skip image filtering (needs to be done before)", default = "false")
+    parser.add_argument("input_folder", help="Input folder containing bag files (with / in the end).", default = "")
+    parser.add_argument("--skip_imgs", help="Whether to skip image filtering (image files still needed)", default = "false")
     args = parser.parse_args()
 
     #filtering out the beginning and end of the bag files
     if args.skip_imgs == "false":
-        filter = filterClass(args.input_folder)
+        filter = FilterClass(args.input_folder)
         filter.filterBags()
 
     #synchronizing the command and imu data
-    processor = processClass(args.input_folder)
+    processor = ProcessorClass(args.input_folder)
     processor.processData()
 
 if __name__ == '__main__':

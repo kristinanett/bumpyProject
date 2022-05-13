@@ -12,7 +12,7 @@ import pandas as pd
 #this code only works on folders of bag files
 #this code assumes that every bag file has a corresponding mqtt file and there is exactly one mqtt log in each timestamped folder
 
-class processClass():
+class ProcessorClass():
     """
         Objective:
         Class to synchronize command and imu data with the images. Processed csv goes in data_processed folder

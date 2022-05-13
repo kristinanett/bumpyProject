@@ -7,7 +7,7 @@ import json
 #this code only works on folders of bag files
 #this code assumes that every bag file has a corresponding mqtt file and there is exactly one mqtt log in each timestamped folder
 
-class filterClass():
+class FilterClass():
     def __init__(self, dir):
         
         """
@@ -60,6 +60,4 @@ class filterClass():
                         pass
 
         print("Finished filtering")
-
-
 
