@@ -5,6 +5,9 @@ from src.models.model import Net
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import torch.nn as nn
+import matplotlib.pyplot as plt
+import os
+import numpy as np
 
 
 # Params for the network should be defined in this code instead (or with hydra)
@@ -15,70 +18,77 @@ import torch.nn as nn
 # output_dim = 10
 
 #create dataset and dataloader
-dataset = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([Normalize(), ToTensor()]))
-dataloader = DataLoader(dataset, batch_size=1)
-dataloader_iter = iter(dataloader)
+#dataset = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([Normalize(), ToTensor()]))
+#dataloader = DataLoader(dataset, batch_size=1)
+#dataloader_iter = iter(dataloader)
 
 #A testrun for the raining code
-model = Net()
-model.train()
+#model = Net()
+#model.train()
     
-for i in range(1):
-     x, y = next(dataloader_iter)
+#for i in range(1):
+#     x, y = next(dataloader_iter)
 
-outputs = model(x)
+#outputs = model(x)
 
-#params
-# num_epochs = 5
-# learning_rate = 0.1
-# criterion = nn.MSELoss()
-# optimizer = torch.optim.SGD(Net.parameters(), lr=learning_rate)
+def train():
+     """Function for training the model in model.py and saving the resulting state dict in models.
+     Also produces a training loss graph which is saved in reports/figures"""
 
-# iter = 0
-# for epoch in range(num_epochs):
-#     for i, (x, y) in enumerate(dataloader):
-#         # Load images as a torch tensor with gradient accumulation abilities
-#         x = x.requires_grad_()
+     print("Starting the training")
+     model = Net()
+     trainset = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([Normalize(), ToTensor()]))
+     trainloader = DataLoader(trainset, batch_size=32, shuffle=True)
+     x, y = next(iter(trainloader))
+     print(f"Image batch dimension [B x C x H x W]: {x[0].shape}")
+     print(f"Command batch dimension [B x L x Hin]: {x[1].shape}")
+     num_epoch = 10
+     criterion = nn.MSELoss()
+     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+     losses = []
 
-#         # Clear gradients w.r.t. parameters
-#         optimizer.zero_grad()
+     # training loop
+     for epoch in range(num_epoch):
 
-#         # Forward pass to get output/logits
-#         outputs = model(images)
+          running_loss = 0.0
+          model.train()
 
-#         # Calculate Loss: mse loss
-#         loss = criterion(outputs, labels)
+          for i, data in enumerate(trainloader, 0):
+               # get the inputs (data is a list of [inputs, labels])
+               inputs, labels = data
 
-#         # Getting gradients w.r.t. parameters
-#         loss.backward()
+               # zero the parameter gradients
+               optimizer.zero_grad()
 
-#         # Updating parameters
-#         optimizer.step()
+               # forward
+               output = model(inputs)
 
-#         iter += 1
+               # compute gradients given loss
+               loss = criterion(output, labels)
+               loss.backward()
+               optimizer.step()
 
-#         if iter % 500 == 0:
-#             # Calculate Accuracy         
-#             correct = 0
-#             total = 0
-#             # Iterate through test dataset
-#             for images, labels in test_loader:
-#                 # Resize images
-#                 images = images.view(-1, seq_dim, input_dim)
+               # print statistics
+               running_loss += loss.item()  # loss.data[0] loss.detach().numpy()
 
-#                 # Forward pass only to get logits/output
-#                 outputs = model(images)
+               if i % 10 == 9:  # print every 10 mini-batches
+                    print("[%d, %5d] loss: %.3f" % (epoch + 1, i + 1, running_loss / 10))
+                    losses.append(running_loss / 10)  # (loss.data.numpy())
+                    running_loss = 0.0
 
-#                 # Get predictions from the maximum value
-#                 _, predicted = torch.max(outputs.data, 1)
 
-#                 # Total number of labels
-#                 total += labels.size(0)
+     # create directory if it does no exist already and save model
+     os.makedirs("models/", exist_ok=True)
+     torch.save(model.state_dict(), "models/thismodel.pt")
 
-#                 # Total correct predictions
-#                 correct += (predicted == labels).sum()
+     print("Finished Training")
+     plt.figure(figsize=(9, 9))
+     plt.plot(np.array(losses), label="Training Error")
+     plt.legend(fontsize=20)
+     plt.xlabel("Train step", fontsize=20)
+     plt.ylabel("Error", fontsize=20)
+     os.makedirs("reports/figures/", exist_ok=True)
+     plt.savefig("reports/figures/training_curve1.png")
 
-#             accuracy = 100 * correct / total
-
-#             # Print Loss
-#             print('Iteration: {}. Loss: {}. Accuracy: {}'.format(iter, loss.item(), accuracy))
+if __name__ == "__main__":
+     train()

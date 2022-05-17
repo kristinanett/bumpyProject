@@ -9,6 +9,7 @@ import cv2
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import pandas as pd
+from sklearn import preprocessing
 
 
 def get_sample_count_by_file(filepath):
@@ -65,6 +66,9 @@ class BumpyDataset(Dataset):
         self._sample_count = sum(f[-1] for f in self.files) #overall nr of images
         self.transform = transform
 
+        #self.imu_scaler = preprocessing.MinMaxScaler()
+        #imu_scaled = self.imu_scaler.fit_transform(np.array([self.csv_df.iloc[:, 16:]]))
+
     def __len__(self):
         return self._sample_count
 
@@ -95,14 +99,17 @@ class BumpyDataset(Dataset):
         lin_coms = np.array([self.csv_df.iloc[idx, :8]])
         ang_coms = np.array([self.csv_df.iloc[idx, 8:16]])
         imu_data = np.array([self.csv_df.iloc[idx, 16:]])
+        #imu_data = self.imu_scaler.transform(np.array([self.csv_df.iloc[idx, 16:]]))
         sample = {'image': rgb_img, 'lin_coms': lin_coms, 'ang_coms': ang_coms, 'imu_data': imu_data}
 
         if self.transform:
             sample = self.transform(sample)
 
-        coms = torch.transpose(torch.cat((sample['lin_coms'], sample['ang_coms']), 0), 0, 1)
+        #some data reshaping
+        coms_final = torch.transpose(torch.cat((sample['lin_coms'], sample['ang_coms']), 0), 0, 1)
+        imu_final = torch.transpose(sample['imu_data'], 0, 1)
 
-        return [sample['image'], coms], sample['imu_data']
+        return [sample['image'], coms_final], imu_final
 
 #Some code to test the dataset is working properly
 # dataset1 = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([Normalize(), ToTensor()]))
@@ -125,9 +132,9 @@ class BumpyDataset(Dataset):
 # print(x1[1].type())
 # print(y1)
 
-#print(x1[0].size()) #([1, 3, 732, 1490])
-#print(x1[1].size()) #[1, 8, 2])
-#print(y1.size()) #([1, 1, 8])
+# print(x1[0].size()) #([1, 3, 732, 1490])
+# print(x1[1].size()) #[1, 8, 2])
+# print(y1.size()) #([1, 8, 1])
 
 # #visualizing the image
 # img_to_show = np.moveaxis(img[-1].numpy(), 0, -1) #(732, 1490, 3)
