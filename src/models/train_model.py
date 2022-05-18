@@ -98,29 +98,29 @@ def train(cfg):
                     train_losses.append(train_loss / 10)  # (loss.data.numpy())
                     train_loss = 0.0
 
-          # val_loss = 0.0
-          # model.eval()
+          val_loss = 0.0
+          model.eval()
 
-          # for i, data in enumerate(val_loader, 0):
-          #      # data contains inputs, labels and inputs is a list of [images, commands]
-          #      inputs, labels = data
+          for i, data in enumerate(val_loader, 0):
+               # data contains inputs, labels and inputs is a list of [images, commands]
+               inputs, labels = data
 
-          #      #if torch.cuda.is_available():
-          #      #     inputs, labels = inputs.cuda(), labels.cuda()
+               if torch.cuda.is_available():
+                    inputs, labels = [inputs[0].cuda(), inputs[1].cuda()] , labels.cuda()
 
-          #      # forward pass
-          #      output = model(inputs)
+               # forward pass
+               output = model(inputs)
 
-          #      # compute loss
-          #      batch_loss = criterion(output, labels)
+               # compute loss
+               batch_loss = criterion(output, labels)
 
-          #      # print statistics
-          #      val_loss += batch_loss.item()  # loss.data[0] loss.detach().numpy()
+               # print statistics
+               val_loss += batch_loss.item()  # loss.data[0] loss.detach().numpy()
 
-          #      if i % 10 == 9:  # print and save validation loss every 10 batches
-          #           log.info("[%d, %5d] validation loss: %.3f" % (epoch + 1, i + 1, val_loss / 10))
-          #           val_losses.append(val_loss / 10)  # (loss.data.numpy())
-          #           val_loss = 0.0
+               if i % 10 == 9:  # print and save validation loss every 10 batches
+                    log.info("[%d, %5d] validation loss: %.3f" % (epoch + 1, i + 1, val_loss / 10))
+                    val_losses.append(val_loss / 10)  # (loss.data.numpy())
+                    val_loss = 0.0
           
 
      # create directory if it does no exist already and save model
@@ -129,8 +129,17 @@ def train(cfg):
 
      log.info("Finished Training")
      plt.figure(figsize=(9, 9))
-     plt.plot(np.array(train_losses), 'r', label="Training Error")
-     #plt.plot(np.array(val_losses), 'b', label="Validation Error")
+     nrofbatches_train = len(train_set)/train_params.batch_size
+     nrofbatches_val = len(val_set)/train_params.batch_size
+     nrofsavings_val = np.floor(nrofbatches_val / 10.0)
+     val_losses_per_epoch = np.mean(np.array(val_losses).reshape(-1, int(nrofsavings_val)), axis=1)
+
+     x_train = np.arange(1, len(train_losses)+1)*10
+     #x_val = range(int(nrofbatches_train), int(nrofbatches_train*train_params.num_epoch), int(nrofbatches_train))
+     x_val = np.arange(1, train_params.num_epoch+1)*nrofbatches_train
+
+     plt.plot(x_train, np.array(train_losses), 'r', marker='o', linestyle='-', label="Training Error")
+     plt.plot(x_val, np.array(val_losses_per_epoch), 'b', marker='o', linestyle='-', label="Validation Error")
      plt.legend(fontsize=20)
      plt.xlabel("Train step", fontsize=20)
      plt.ylabel("Error", fontsize=20)
