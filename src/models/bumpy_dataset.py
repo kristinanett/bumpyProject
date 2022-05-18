@@ -9,8 +9,6 @@ import cv2
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn import preprocessing
-
 
 def get_sample_count_by_file(filepath):
     input_bag = rosbag.Bag(filepath, "r") 
@@ -37,15 +35,40 @@ class Normalize(object):
     def __call__(self, sample):
         image, lin_coms, ang_coms, imu_data = sample['image'], sample['lin_coms'], sample['ang_coms'], sample['imu_data']
 
-        #normalizing the data
+        #normalizing the image data
         image = (image-(255/2))/(255/2)
-        lin_coms = (lin_coms-0.5)/0.05 #assuming lin coms in range 0.45 to 0.55
-        ang_coms = (ang_coms/0.4) #assuming ang coms in range -0.4 to 0.4
         
-        return {'image': image,
-                'lin_coms': lin_coms,
-                'ang_coms': ang_coms,
-                'imu_data': imu_data}
+        return {'image': image, 'lin_coms': lin_coms, 'ang_coms': ang_coms, 'imu_data': imu_data}
+
+class Rescale(object):
+    """Rescale the image in a sample to a given size.
+
+    Args:
+        output_size (tuple or int): Desired output size. If tuple, output is
+            matched to output_size. If int, smaller of image edges is matched
+            to output_size keeping aspect ratio the same.
+    """
+
+    def __init__(self, output_size):
+        assert isinstance(output_size, (int, tuple))
+        self.output_size = output_size
+
+    def __call__(self, sample):
+        image, lin_coms, ang_coms, imu_data = sample['image'], sample['lin_coms'], sample['ang_coms'], sample['imu_data']
+
+        h, w = image.shape[:2]
+        if isinstance(self.output_size, int):
+            if h > w:
+                new_h, new_w = self.output_size * h / w, self.output_size
+            else:
+                new_h, new_w = self.output_size, self.output_size * w / h
+        else:
+            new_h, new_w = self.output_size
+
+        new_h, new_w = int(new_h), int(new_w)
+        img = cv2.resize(image, (new_w, new_h))
+
+        return {'image': img, 'lin_coms': lin_coms, 'ang_coms': ang_coms, 'imu_data': imu_data}
 
 
 class BumpyDataset(Dataset):
@@ -65,18 +88,26 @@ class BumpyDataset(Dataset):
         self.files = sorted((f, get_sample_count_by_file(f)) for f in file_list) #list of tuples with file name and nr of imgs
         self._sample_count = sum(f[-1] for f in self.files) #overall nr of images
         self.transform = transform
+        self.stats = self.__getStats__()
 
-        #self.imu_scaler = preprocessing.MinMaxScaler()
-        #imu_scaled = self.imu_scaler.fit_transform(np.array([self.csv_df.iloc[:, 16:]]))
 
     def __len__(self):
         return self._sample_count
 
     def __getStats__(self):
+        imu_all = np.array([self.csv_df.iloc[:, 16:]])
+        lin_com_all = np.array([self.csv_df.iloc[:, :8]])
+        ang_com_all = np.array([self.csv_df.iloc[:, 8:16]])
 
-        return self._sample_count
+        imu_mean, imu_std = np.mean(imu_all), np.std(imu_all)
+        lin_com_mean, lin_com_std = np.mean(lin_com_all), np.std(lin_com_all)
+        ang_com_mean, ang_com_std = np.mean(ang_com_all), np.std(ang_com_all)
+
+        return lin_com_mean, lin_com_std, ang_com_mean, ang_com_std, imu_mean, imu_std
 
     def __getitem__(self, idx):
+
+        #finding the right image from the right bag file 
         bridge = CvBridge()
         current_count = 0
         for file_, sample_count in self.files:
@@ -87,6 +118,8 @@ class BumpyDataset(Dataset):
 
         # now file_ has sample_count samples
         file_idx = idx - current_count  # the index we want to access in file_
+        #print(file_)
+        #print(file_idx)
         with rosbag.Bag(file_, 'r') as f:
             i=0
             for topic, msg, t in f.read_messages(topics=["/cam1/image_rect/compressed"]):
@@ -96,10 +129,10 @@ class BumpyDataset(Dataset):
                     break
                 i=i+1
         
-        lin_coms = np.array([self.csv_df.iloc[idx, :8]])
-        ang_coms = np.array([self.csv_df.iloc[idx, 8:16]])
-        imu_data = np.array([self.csv_df.iloc[idx, 16:]])
-        #imu_data = self.imu_scaler.transform(np.array([self.csv_df.iloc[idx, 16:]]))
+        #getting the other data and normalizing the it right away by subtracting mean and dividing by std found on the whole dataset
+        lin_coms = (np.array([self.csv_df.iloc[idx, :8]])-self.stats[0])/self.stats[1]
+        ang_coms = (np.array([self.csv_df.iloc[idx, 8:16]])-self.stats[2])/self.stats[3]
+        imu_data = (np.array([self.csv_df.iloc[idx, 16:]])-self.stats[4])/self.stats[5]
         sample = {'image': rgb_img, 'lin_coms': lin_coms, 'ang_coms': ang_coms, 'imu_data': imu_data}
 
         if self.transform:
@@ -116,13 +149,14 @@ class BumpyDataset(Dataset):
 # dataloader1 = DataLoader(dataset1, batch_size=1)
 # dataloader_iter1 = iter(dataloader1)
 
-# dataset2 = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([ToTensor()]))
-# dataloader2 = DataLoader(dataset2, batch_size=1)
-# dataloader_iter2 = iter(dataloader2)
+#dataset2 = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([ToTensor()]))
+#dataset2.__getitem__(7360)
+#dataloader2 = DataLoader(dataset2, batch_size=32)
+#dataloader_iter2 = iter(dataloader2)
 
-# for i in range(1):
-#     x1, y1 = next(dataloader_iter1)
-#     x2, y2 = next(dataloader_iter2)
+#for i in range(230):
+#    #x1, y1 = next(dataloader_iter1)
+#    x2, y2 = next(dataloader_iter2)
 
 # print(x2[0].type())
 # print(x2[1].type())
@@ -136,7 +170,7 @@ class BumpyDataset(Dataset):
 # print(x1[1].size()) #[1, 8, 2])
 # print(y1.size()) #([1, 8, 1])
 
-# #visualizing the image
-# img_to_show = np.moveaxis(img[-1].numpy(), 0, -1) #(732, 1490, 3)
+#visualizing the image
+# img_to_show = np.moveaxis(x2[0][0].numpy(), 0, -1) #(732, 1490, 3)
 # plt.imshow(img_to_show, cmap="gray")
 # plt.show()

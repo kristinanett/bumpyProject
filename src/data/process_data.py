@@ -48,7 +48,7 @@ class ProcessorClass():
         return sum
 
     def processData(self):
-        csv_file = "data/processed/data.csv"
+        csv_file = "data/processed/data2.csv"
         image_topic = "/cam1/image_rect/compressed"
 
         img_file_list = sorted(glob.glob("data/processed/*.bag"))

@@ -1,0 +1,29 @@
+#model_config.yaml
+hyperparams:
+  img_height: 122
+  img_width: 248
+
+  # define convolutional layer parameters
+  channels_conv1: 3
+  num_filters_conv1: 32
+  kernel_size_conv1: 5
+  stride_conv1: 2
+  padding_conv1: 0
+
+  # define second convolutional layer parameters
+  num_filters_conv2: 64
+  kernel_size_conv2: 3
+  stride_conv2: 2
+  padding_conv2: 0
+
+  # define linear layer parameters
+  num_l1: 256
+  num_l2: 64 #has to be same as hidden in lstm
+  
+  # define LSTM layer parameters
+  input_size_lstm: 2
+  hidden_size_lstm: 64 #(same as paper)
+  num_layers_lstm: 1
+  
+  # define output linear layer parameters
+  num_lout: 1
