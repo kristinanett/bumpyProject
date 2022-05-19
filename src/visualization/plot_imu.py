@@ -16,6 +16,9 @@ plt.plot(df["times"]/1000, df["gyro_x"])
 
 plt.subplot(2, 3, 2)
 plt.plot(df["times"]/1000, df["gyro_y"])
+#plt.xlabel("Relative time (s)")
+#plt.ylabel("Gyro y-axis data (deg/s)")
+#plt.grid()
 
 plt.subplot(2, 3, 3)
 plt.plot(df["times"]/1000, df["gyro_z"])
@@ -29,6 +32,8 @@ plt.plot(df["times"]/1000, df["acc_y"])
 plt.subplot(2, 3, 6)
 plt.plot(df["times"]/1000, df["acc_z"])
 
-plt.show() 
+plt.savefig('reports/figures/imu_plotx.png')
+plt.show()
+
 
 
