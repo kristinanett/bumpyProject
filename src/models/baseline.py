@@ -1,6 +1,6 @@
 import torch
-from src.models.bumpy_dataset import BumpyDataset
-from src.models.bumpy_dataset import Rescale, Normalize, ToTensor
+from src.models.bumpy_dataset2 import BumpyDataset2
+from src.models.bumpy_dataset2 import Rescale, Normalize, ToTensor
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import torch.nn as nn
@@ -9,15 +9,15 @@ import os
 import numpy as np
 import pandas as pd
 
-csv_file_path = 'data/processed/data2.csv'
+csv_file_path = 'data/processed/data3.csv'
 num_epoch = 20
 batch_size = 32
 
-dataset = BumpyDataset(csv_file_path, 'data/processed', transform=transforms.Compose([Rescale(122), Normalize(), ToTensor()]))
+dataset = BumpyDataset2(csv_file_path, 'data/processed/imgs/', transform=transforms.Compose([Rescale(122), Normalize(), ToTensor()]))
 train_size = int(0.8 * len(dataset)) #10433 
 val_size = len(dataset) - train_size #2609
 train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
-val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=2)
+val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=4)
 
 df = pd.read_csv(csv_file_path, header=0)
 imu_all = np.array([df.iloc[:, 16:]])

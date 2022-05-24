@@ -10,7 +10,36 @@ def compute_conv_dim(dim_size, kernel_size, padding, stride):
 class Net(nn.Module):
     def __init__(self, model_params):
         super(Net, self).__init__()
+
+        # #model_config.yaml
+        # img_height= 122
+        # img_width= 248
+
+        # # define convolutional layer parameters
+        # channels_conv1= 3
+        # num_filters_conv1= 32
+        # kernel_size_conv1= 5
+        # stride_conv1= 2
+        # padding_conv1= 0
+
+        # # define second convolutional layer parameters
+        # num_filters_conv2= 64
+        # kernel_size_conv2= 3
+        # stride_conv2= 2
+        # padding_conv2= 0
+
+        # # define linear layer parameters
+        # num_l1= 256
+        # num_l2= 64 #has to be same as hidden in lstm
         
+        # # define LSTM layer parameters
+        # input_size_lstm= 2
+        # hidden_size_lstm= 64 #(same as paper)
+        # num_layers_lstm= 1
+        
+        # # define output linear layer parameters
+        # num_lout= 1
+
         self.conv_1 = nn.Conv2d(in_channels=model_params.channels_conv1,
                              out_channels=model_params.num_filters_conv1,
                              kernel_size=model_params.kernel_size_conv1,
@@ -30,7 +59,7 @@ class Net(nn.Module):
         self.conv2_out_width = compute_conv_dim(self.conv1_out_width, model_params.kernel_size_conv2, model_params.padding_conv2, model_params.stride_conv2)
 
         #calculate nr of features that go into the fully connected layer
-        #self.l1_in_features = model_params.num_filters_conv1 * int(self.conv1_out_height) * int(self.conv1_out_width)   #two poolings mean height and width / 4
+        #self.l1_in_features = .num_filters_conv1 * int(self.conv1_out_height) * int(self.conv1_out_width)   #two poolings mean height and width / 4
         self.l1_in_features = model_params.num_filters_conv2 * int(self.conv2_out_height) * int(self.conv2_out_width)
 
         self.l_1 = nn.Linear(in_features=self.l1_in_features, 

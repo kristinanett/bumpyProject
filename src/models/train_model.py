@@ -1,6 +1,6 @@
 import torch
-from src.models.bumpy_dataset import BumpyDataset
-from src.models.bumpy_dataset import Rescale, Normalize, ToTensor
+from src.models.bumpy_dataset2 import BumpyDataset2
+from src.models.bumpy_dataset2 import Rescale, Normalize, ToTensor
 from src.models.model import Net
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
@@ -12,7 +12,6 @@ import sys
 import hydra
 from hydra.utils import get_original_cwd
 import logging
-#from torch.profiler import profile, record_function, ProfilerActivity, tensorboard_trace_handler
 
 #create dataset and dataloader
 #dataset = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([Normalize(), ToTensor()]))
@@ -42,7 +41,7 @@ def train(cfg):
           model.cuda()
 
      #initialize the train and validation set
-     dataset = BumpyDataset(
+     dataset = BumpyDataset2(
           get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
           get_original_cwd() + "/" + train_params.img_data_path, 
           transform=transforms.Compose([Rescale(train_params.img_rescale), Normalize(), ToTensor()])
@@ -52,9 +51,9 @@ def train(cfg):
      val_size = len(dataset) - train_size #2609
      train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
 
-     train_loader = DataLoader(train_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=2)
-     #train_loader = DataLoader(dataset, batch_size=train_params.batch_size, shuffle = False) #for testing the training without shuffling
-     val_loader = DataLoader(val_set, batch_size=train_params.batch_size, shuffle=True, num_workers=2)
+     #train_loader = DataLoader(train_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=6)
+     train_loader = DataLoader(dataset, batch_size=train_params.batch_size, shuffle = False, num_workers=6) #for testing the training without shuffling
+     val_loader = DataLoader(val_set, batch_size=train_params.batch_size, shuffle=True, num_workers=6)
 
      #check shapes
      x, y = next(iter(train_loader))
