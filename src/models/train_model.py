@@ -12,6 +12,7 @@ import sys
 import hydra
 from hydra.utils import get_original_cwd
 import logging
+#from torch.profiler import profile, record_function, ProfilerActivity, tensorboard_trace_handler
 
 #create dataset and dataloader
 #dataset = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([Normalize(), ToTensor()]))
@@ -151,7 +152,6 @@ def train(cfg):
 def main(cfg):
      torch.manual_seed(cfg.train.hyperparams.seed)
      train(cfg)
-
 
 if __name__ == "__main__":
      main()
