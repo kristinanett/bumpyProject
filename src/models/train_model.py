@@ -1,6 +1,6 @@
 import torch
-from src.models.bumpy_dataset2 import BumpyDataset2
-from src.models.bumpy_dataset2 import Rescale, Normalize, ToTensor
+from src.models.bumpy_dataset import BumpyDataset
+from src.models.bumpy_dataset import Rescale, Normalize, ToTensor
 from src.models.model import Net
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
@@ -41,19 +41,19 @@ def train(cfg):
           model.cuda()
 
      #initialize the train and validation set
-     dataset = BumpyDataset2(
+     dataset = BumpyDataset(
           get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
           get_original_cwd() + "/" + train_params.img_data_path, 
           transform=transforms.Compose([Rescale(train_params.img_rescale), Normalize(), ToTensor()])
           )
-     
+
      train_size = int(0.8 * len(dataset)) #10433 
      val_size = len(dataset) - train_size #2609
      train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
 
-     #train_loader = DataLoader(train_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=6)
-     train_loader = DataLoader(dataset, batch_size=train_params.batch_size, shuffle = False, num_workers=6) #for testing the training without shuffling
-     val_loader = DataLoader(val_set, batch_size=train_params.batch_size, shuffle=True, num_workers=6)
+     train_loader = DataLoader(train_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=4)
+     #train_loader = DataLoader(dataset, batch_size=train_params.batch_size, shuffle = False, num_workers=6) #for testing the training without shuffling
+     val_loader = DataLoader(val_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=4)
 
      #check shapes
      x, y = next(iter(train_loader))
@@ -75,6 +75,8 @@ def train(cfg):
           for i, data in enumerate(train_loader, 0):
                # data contains inputs, labels and inputs is a list of [images, commands]
                inputs, labels = data
+               # print(inputs[1])
+               # print(labels)
 
                if torch.cuda.is_available():
                     inputs, labels = [inputs[0].cuda(), inputs[1].cuda()] , labels.cuda()
@@ -135,7 +137,6 @@ def train(cfg):
      val_losses_per_epoch = np.mean(np.array(val_losses).reshape(-1, int(nrofsavings_val)), axis=1)
 
      x_train = np.arange(1, len(train_losses)+1)*10
-     #x_val = range(int(nrofbatches_train), int(nrofbatches_train*train_params.num_epoch), int(nrofbatches_train))
      x_val = np.arange(1, train_params.num_epoch+1)*nrofbatches_train
 
      plt.plot(x_train, np.array(train_losses), 'r', marker='o', linestyle='-', label="Training Error")

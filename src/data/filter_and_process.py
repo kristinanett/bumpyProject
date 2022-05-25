@@ -7,6 +7,7 @@ import pandas as pd
 from sensor_msgs.msg import Image
 import cv2
 import os
+import sys
 
 #this code only works on a folder of raw data
 #this code assumes that every bag file has a corresponding mqtt file and there is exactly one mqtt log in each timestamped folder
@@ -17,7 +18,7 @@ class ProcessDay():
         """
         Objective:
             1. filter out images from beginning and end of bagfile based on the com file start and end.
-            2. find syncronized mqtt and imu values for each kept image to be saved in data/processed/data3.csv
+            2. find syncronized mqtt and imu values for each kept image to be saved in data/processed/data.csv
             3. convert all kept images to png images to be saved in data/processed/imgs
 
         Args:
@@ -34,8 +35,28 @@ class ProcessDay():
         self.imu_file_list = sorted(glob.glob(self.imu_folder + "*.txt"))
         self.mqtt_folder_list = sorted(glob.glob(self.mqtt_folder + "*/"))
 
+        #check if can access the raw data
+        if not self.cam_file_list or not self.imu_file_list or not self.mqtt_folder_list:
+            print("Unable to locate the raw data. Check the inserted path and try again")
+            sys.exit(0)
+
         self.output_img_path = "data/processed/imgs/"
-        self.output_data_path = "data/processed/data3.csv"
+        self.output_data_path = "data/processed/data.csv"
+
+        #check if data.csv exists and there are already processed image files in imgs
+        imgs = sorted(glob.glob(self.output_img_path + "*.png"))
+        if os.path.isfile(self.output_data_path) and imgs:
+            self.mode = "a" #append to existing
+            self.img_start_idx = len(imgs)
+            ans = input("Found existing processed files, appending. Do you want to proceed? (y/n)")
+            # Stop code if the input value is 'n'
+            if (ans.lower() == 'n'):
+                sys.exit(0)
+        else:
+            self.mode = "w" #write to new
+            self.img_start_idx = 0
+            print("Did not find already existing processed files, creating new")
+
 
     def getCorrespondingCommand(self, time, f):
         current_line = json.loads(f.readline())
@@ -61,10 +82,11 @@ class ProcessDay():
         return sum
 
     def getOutputCSV(self):
-        f_csv = open(self.output_data_path, 'w', newline = "")
+        f_csv = open(self.output_data_path, self.mode, newline = "")
         header = ['lin1', 'lin2', 'lin3', 'lin4', 'lin5', 'lin6', 'lin7', 'lin8', 'ang1', 'ang2', 'ang3', 'ang4', 'ang5', 'ang6', 'ang7', 'ang8', 'imu1', 'imu2', 'imu3', 'imu4', 'imu5', 'imu6', 'imu7', 'imu8']
         writer = csv.writer(f_csv)
-        writer.writerow(header)
+        if self.mode == "w":
+            writer.writerow(header)
         return f_csv, writer
 
     def syncAndSaveCSV(self, writer):
@@ -85,39 +107,48 @@ class ProcessDay():
         f_csv, csv_writer = self.getOutputCSV()
 
         #looping over all the bag files in one day
-        k=0
+        file_count=0
         totalLineCount = 0
+        current_img_idx = self.img_start_idx
         for input_cam_file, com_folder, imu_file in zip(self.cam_file_list, self.mqtt_folder_list, self.imu_file_list):
 
             input_bag = rosbag.Bag(input_cam_file, "r")
             f_com = open(com_folder + "dir/log000", "r")
             f_imu = open(imu_file, "r")
             df = pd.read_csv(f_imu, sep=" ", usecols=[0,2,3], names=["times","gyro_y", "gyro_z"])
+            df = df.dropna() #drop rows with nan values
+            #df_new = df[pd.to_numeric(df['times'], errors='coerce').notnull()] #filter out some broken rows that have strings
+            #df_new['times'] = df_new['times'].astype(int) #make sure all timesteps are ints
+
             bridge = CvBridge()
 
             #accessing the velocity command document to get the time that commands started/stopped sending and saving (to filter out all images taken before/after)
             file_idx = self.cam_file_list.index(input_cam_file)
             mqtt_folder = self.mqtt_folder_list[file_idx]
-            print(k+1, "/", len(self.cam_file_list), ":", "Bag file", input_cam_file, "\tMQTT folder", mqtt_folder)
+            print(file_count+1, "/", len(self.cam_file_list), ":", "Bag file", input_cam_file, "\tMQTT folder", mqtt_folder)
 
             lines = open(mqtt_folder + "dir/log000", "r").readlines()
             com_start_time = json.loads(lines[0])["time"]/1000 #seconds
             com_end_time = json.loads(lines[-1])["time"]/1000 #seconds
+
+            #get imu file start time
+            imu_start_time = df["times"][0]/1000 #seconds
+            imu_end_time = df["times"][-1]/1000 #seconds
     
             #loop over the messages/images in one bag and check the timestamps to be correct (save mqtt and imu data for correct)
-            i=0
+            msg_count=0
             for topic, msg, t in input_bag.read_messages(topics=[self.image_topic]):
                 lin_coms = []
                 ang_coms = []
                 imus = []
                 img_time = t.to_nsec()/1000000
-
-                if t.to_nsec() > (com_start_time * (10 ** 9)) and t.to_nsec() < (com_end_time * (10 ** 9)) -  8.2 * (10 ** 9):
-                    #the messages that should be saved reach here
-
+                
+                #the messages that should be saved reach here
+                if (t.to_nsec() > (com_start_time * (10 ** 9))) and (t.to_nsec() < ((com_end_time -  8.2) * (10 ** 9))) and \
+                    (t.to_nsec() > (imu_start_time* (10 ** 9))) and (t.to_nsec() < ((imu_end_time -  8.2) * (10 ** 9))):
+                    
                     #saving the message as a png image 
-                    self.writeIMG(bridge, msg, totalLineCount+i)
-                    #print("wrote", i)
+                    self.writeIMG(bridge, msg, current_img_idx+msg_count)
 
                     #looping 8 times for each image to get 8 future commands and corresponding imu values
                     for j in range(8):
@@ -131,23 +162,34 @@ class ProcessDay():
                         lin_coms.append(lin)
                         ang_coms.append(ang)
                         imus.append(imu)
+                        
+                        #nan investigation
+                        if j ==0 and (current_img_idx+msg_count) == 21278:
+                            print(imu, com_time) #nan 1652711464.726
+                            filtered_df = df.loc[(df['times'] > com_time-500) & (df['times'] < com_time+500)]
+                            sum = (filtered_df['gyro_y']**2 + filtered_df['gyro_z']**2).mean()
+                            print(filtered_df['gyro_y'])
+                            print(filtered_df['gyro_z'])
+                            print(sum)
+
 
                     #returning the pointer to where it was at t+1s 
                     f_com.seek(return_pos)
 
                     # write a row to the csv file
                     csv_writer.writerow(lin_coms+ang_coms+imus)
-                    i+=1
+                    msg_count+=1
 
                 else:
                     pass
 
-            print("Wrote", i, "lines to csv file")
-            totalLineCount += i
+            print("Wrote", msg_count, "lines to csv file")
+            totalLineCount += msg_count
+            current_img_idx += msg_count
             input_bag.close()
             f_com.close()
             f_imu.close()
-            k+=1
+            file_count+=1
 
         # close the output file
         f_csv.close()

@@ -1,6 +1,6 @@
 import torch
-from src.models.bumpy_dataset2 import BumpyDataset2
-from src.models.bumpy_dataset2 import Rescale, Normalize, ToTensor
+from src.models.bumpy_dataset import BumpyDataset2
+from src.models.bumpy_dataset import Rescale, Normalize, ToTensor
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import torch.nn as nn
