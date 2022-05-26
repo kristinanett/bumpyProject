@@ -90,11 +90,8 @@ class BumpyDataset(Dataset):
         imu_all = np.array([self.csv_df.iloc[:, 16:]])
         lin_com_all = np.array([self.csv_df.iloc[:, :8]])
         ang_com_all = np.array([self.csv_df.iloc[:, 8:16]])
-        print("imu nan count")
-        print(self.csv_df.iloc[:, 16:].isnull().sum())
-        print(np.where(self.csv_df['imu1'].isnull())[0])
 
-        imu_mean, imu_std = np.nanmean(imu_all), np.std(imu_all)
+        imu_mean, imu_std = np.mean(imu_all), np.std(imu_all)
         lin_com_mean, lin_com_std = np.mean(lin_com_all), np.std(lin_com_all)
         ang_com_mean, ang_com_std = np.mean(ang_com_all), np.std(ang_com_all)
 
@@ -111,9 +108,6 @@ class BumpyDataset(Dataset):
         lin_coms = (np.array([self.csv_df.iloc[idx, :8]])-self.stats[0])/self.stats[1]
         ang_coms = (np.array([self.csv_df.iloc[idx, 8:16]])-self.stats[2])/self.stats[3]
         imu_data = (np.array([self.csv_df.iloc[idx, 16:]])-self.stats[4])/self.stats[5]
-        print(imu_data)
-        print(self.stats[4])
-        print(self.stats[5])
         sample = {'image': rgb_img, 'lin_coms': lin_coms, 'ang_coms': ang_coms, 'imu_data': imu_data}
 
         if self.transform:
@@ -126,17 +120,17 @@ class BumpyDataset(Dataset):
         return [sample['image'], coms_final], imu_final
 
 #Some code to test the dataset is working properly
-dataset1 = BumpyDataset("data/processed/data.csv","data/processed/imgs/", transform=transforms.Compose([Normalize(), ToTensor()]))
-dataloader1 = DataLoader(dataset1, batch_size=1)
-dataloader_iter1 = iter(dataloader1)
+# dataset1 = BumpyDataset("data/processed/data.csv","data/processed/imgs/", transform=transforms.Compose([Normalize(), ToTensor()]))
+# dataloader1 = DataLoader(dataset1, batch_size=1)
+# dataloader_iter1 = iter(dataloader1)
 
 #dataset2 = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([ToTensor()]))
 #dataset2.__getitem__(7360)
 #dataloader2 = DataLoader(dataset2, batch_size=32)
 #dataloader_iter2 = iter(dataloader2)
 
-for i in range(1):
-    x1, y1 = next(dataloader_iter1)
+# for i in range(1):
+#     x1, y1 = next(dataloader_iter1)
 #   x2, y2 = next(dataloader_iter2)
 
 # print(x2[0].type())
@@ -147,7 +141,7 @@ for i in range(1):
 #print(x1[1].type())
 #print(x1[0])
 #print(x1[1])
-print(y1)
+# print(y1)
 
 # print(x1[0].size()) #([1, 3, 732, 1490])
 # print(x1[1].size()) #[1, 8, 2])

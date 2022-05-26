@@ -79,7 +79,7 @@ class ProcessDay():
     def getCorrespondingIMUdata(self, time, df):
         filtered_df = df.loc[(df['times'] > time-500) & (df['times'] < time+500)]
         sum = (filtered_df['gyro_y']**2 + filtered_df['gyro_z']**2).mean()
-        return sum
+        return sum, len(filtered_df)
 
     def getOutputCSV(self):
         f_csv = open(self.output_data_path, self.mode, newline = "")
@@ -117,8 +117,6 @@ class ProcessDay():
             f_imu = open(imu_file, "r")
             df = pd.read_csv(f_imu, sep=" ", usecols=[0,2,3], names=["times","gyro_y", "gyro_z"])
             df = df.dropna() #drop rows with nan values
-            #df_new = df[pd.to_numeric(df['times'], errors='coerce').notnull()] #filter out some broken rows that have strings
-            #df_new['times'] = df_new['times'].astype(int) #make sure all timesteps are ints
 
             bridge = CvBridge()
 
@@ -130,10 +128,6 @@ class ProcessDay():
             lines = open(mqtt_folder + "dir/log000", "r").readlines()
             com_start_time = json.loads(lines[0])["time"]/1000 #seconds
             com_end_time = json.loads(lines[-1])["time"]/1000 #seconds
-
-            #get imu file start time
-            imu_start_time = df["times"][0]/1000 #seconds
-            imu_end_time = df["times"][-1]/1000 #seconds
     
             #loop over the messages/images in one bag and check the timestamps to be correct (save mqtt and imu data for correct)
             msg_count=0
@@ -141,15 +135,12 @@ class ProcessDay():
                 lin_coms = []
                 ang_coms = []
                 imus = []
+                imus_samples = []
                 img_time = t.to_nsec()/1000000
                 
                 #the messages that should be saved reach here
-                if (t.to_nsec() > (com_start_time * (10 ** 9))) and (t.to_nsec() < ((com_end_time -  8.2) * (10 ** 9))) and \
-                    (t.to_nsec() > (imu_start_time* (10 ** 9))) and (t.to_nsec() < ((imu_end_time -  8.2) * (10 ** 9))):
+                if (t.to_nsec() > (com_start_time * (10 ** 9))) and (t.to_nsec() < ((com_end_time -  8.2) * (10 ** 9))):
                     
-                    #saving the message as a png image 
-                    self.writeIMG(bridge, msg, current_img_idx+msg_count)
-
                     #looping 8 times for each image to get 8 future commands and corresponding imu values
                     for j in range(8):
                         #saving where the file pointer was after the 1st loop (t+1s)
@@ -158,27 +149,25 @@ class ProcessDay():
 
                         #getting the commands and the imu and appending them to lists
                         com_time, lin, ang = self.getCorrespondingCommand(img_time+((j+1)*1000), f_com)
-                        imu = self.getCorrespondingIMUdata(com_time, df)
+                        imu, samples = self.getCorrespondingIMUdata(com_time, df)
                         lin_coms.append(lin)
                         ang_coms.append(ang)
                         imus.append(imu)
-                        
-                        #nan investigation
-                        if j ==0 and (current_img_idx+msg_count) == 21278:
-                            print(imu, com_time) #nan 1652711464.726
-                            filtered_df = df.loc[(df['times'] > com_time-500) & (df['times'] < com_time+500)]
-                            sum = (filtered_df['gyro_y']**2 + filtered_df['gyro_z']**2).mean()
-                            print(filtered_df['gyro_y'])
-                            print(filtered_df['gyro_z'])
-                            print(sum)
+                        imus_samples.append(samples)
 
 
                     #returning the pointer to where it was at t+1s 
                     f_com.seek(return_pos)
 
-                    # write a row to the csv file
-                    csv_writer.writerow(lin_coms+ang_coms+imus)
-                    msg_count+=1
+                    #check that the number of samples imu is averaging over is between 20 and 60
+                    if all(i > 20 and i < 60 for i in imus_samples):
+                        #saving the message as a png image 
+                        self.writeIMG(bridge, msg, current_img_idx+msg_count)
+                        # write a row to the csv file
+                        csv_writer.writerow(lin_coms+ang_coms+imus)
+                        msg_count+=1
+                    else:
+                        print("Skipping a row and img - too few samples used: ", imus_samples)
 
                 else:
                     pass

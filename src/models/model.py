@@ -11,7 +11,7 @@ class Net(nn.Module):
     def __init__(self, model_params):
         super(Net, self).__init__()
 
-        # #model_config.yaml
+        # model_config.yaml content for profiling (cannot use hydra)
         # img_height= 122
         # img_width= 248
 
