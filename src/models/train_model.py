@@ -48,11 +48,11 @@ def train(cfg):
           )
 
      train_size = int(0.8 * len(dataset)) #10433 
-     val_size = len(dataset) - train_size #2609
-     train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
+     val_size = int(0.15*len(dataset)) #2609
+     test_size = len(dataset) - train_size - val_size
+     train_set, val_set, test_set = torch.utils.data.random_split(dataset, [train_size, val_size, test_size], generator = torch.manual_seed(cfg.train.hyperparams.seed))
 
      train_loader = DataLoader(train_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=4)
-     #train_loader = DataLoader(dataset, batch_size=train_params.batch_size, shuffle = False, num_workers=6) #for testing the training without shuffling
      val_loader = DataLoader(val_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=4)
 
      #check shapes

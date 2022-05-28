@@ -94,6 +94,7 @@ class BumpyDataset(Dataset):
         imu_mean, imu_std = np.mean(imu_all), np.std(imu_all)
         lin_com_mean, lin_com_std = np.mean(lin_com_all), np.std(lin_com_all)
         ang_com_mean, ang_com_std = np.mean(ang_com_all), np.std(ang_com_all)
+        #print("Stats:", lin_com_mean, lin_com_std, ang_com_mean, ang_com_std, imu_mean, imu_std)
 
         return lin_com_mean, lin_com_std, ang_com_mean, ang_com_std, imu_mean, imu_std
 
@@ -139,8 +140,8 @@ class BumpyDataset(Dataset):
 
 #print(x1[0].type())
 #print(x1[1].type())
-#print(x1[0])
-#print(x1[1])
+# print(x1[0])
+# print(x1[1])
 # print(y1)
 
 # print(x1[0].size()) #([1, 3, 732, 1490])
