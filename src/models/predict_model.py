@@ -4,7 +4,7 @@ import hydra
 from hydra.utils import get_original_cwd
 from omegaconf import OmegaConf
 from src.models.bumpy_dataset import BumpyDataset
-from src.models.bumpy_dataset import Rescale, Normalize, ToTensor
+from src.models.bumpy_dataset import Rescale, NormalizeIMG, ToTensor
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import numpy as np
@@ -34,7 +34,7 @@ def predict(cfg, path):
     dataset = BumpyDataset(
         get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
         get_original_cwd() + "/" + train_params.img_data_path, 
-        transform=transforms.Compose([Rescale(train_params.img_rescale), Normalize(), ToTensor()])
+        transform=transforms.Compose([Rescale(train_params.img_rescale), NormalizeIMG(), ToTensor()])
         )
 
     train_size = int(0.8 * len(dataset)) #18624

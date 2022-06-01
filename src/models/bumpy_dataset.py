@@ -2,8 +2,6 @@ import numpy as np
 from torch.utils.data import Dataset, DataLoader
 import torch
 import glob
-import yaml
-from cv_bridge import CvBridge
 import cv2
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
@@ -23,16 +21,40 @@ class ToTensor(object):
                 'ang_coms': torch.from_numpy(ang_coms).float(),
                 'imu_data': torch.from_numpy(imu_data).float()}
 
-class Normalize(object):
+class NormalizeIMG(object):
     """Normalize the image in the sample"""
 
     def __call__(self, sample):
         image, lin_coms, ang_coms, imu_data = sample['image'], sample['lin_coms'], sample['ang_coms'], sample['imu_data']
 
         #normalizing the image data
-        image = (image-(255/2))/(255/2)
+        #image = (image-(255/2))/(255/2)
+        channel_means = np.mean(image, axis=(0,1))
+        channel_stds = np.std(image, axis=(0,1))
+
+        standardized_images_out = (image - channel_means) / channel_stds
         
-        return {'image': image, 'lin_coms': lin_coms, 'ang_coms': ang_coms, 'imu_data': imu_data}
+        return {'image': standardized_images_out, 'lin_coms': lin_coms, 'ang_coms': ang_coms, 'imu_data': imu_data}
+
+
+class Crop(object):
+    """Crop the upper x pixels of the image out
+
+    Args:
+        crop_ratio (float): Crop ratio. How much of the height to crop out from the top (eg 0.5 crops top half of the image)
+    """
+
+    def __init__(self, crop_ratio):
+        assert isinstance(crop_ratio, (float))
+        self.crop_ratio = crop_ratio
+
+    def __call__(self, sample):
+        image, lin_coms, ang_coms, imu_data = sample['image'], sample['lin_coms'], sample['ang_coms'], sample['imu_data']
+
+        h, w = image.shape[:2]
+        crop_img = image[int(self.crop_ratio*h):h, :].copy()
+
+        return {'image': crop_img, 'lin_coms': lin_coms, 'ang_coms': ang_coms, 'imu_data': imu_data}
 
 class Rescale(object):
     """Rescale the image in a sample to a given size.
@@ -121,18 +143,18 @@ class BumpyDataset(Dataset):
         return [sample['image'], coms_final], imu_final
 
 #Some code to test the dataset is working properly
-# dataset1 = BumpyDataset("data/processed/data.csv","data/processed/imgs/", transform=transforms.Compose([Normalize(), ToTensor()]))
+# dataset1 = BumpyDataset("data/processed/data.csv","data/processed/imgs/", transform=transforms.Compose([NormalizeIMG(), ToTensor()]))
 # dataloader1 = DataLoader(dataset1, batch_size=1)
 # dataloader_iter1 = iter(dataloader1)
 
-#dataset2 = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([ToTensor()]))
-#dataset2.__getitem__(7360)
-#dataloader2 = DataLoader(dataset2, batch_size=32)
-#dataloader_iter2 = iter(dataloader2)
+# dataset2 = BumpyDataset("data/processed/data.csv","data/processed/imgs/", transform=transforms.Compose([Rescale(122), Crop(0.45), NormalizeIMG(), ToTensor()])) #68x248aftercrop
+# # #dataset2.__getitem__(7360)
+# dataloader2 = DataLoader(dataset2, batch_size=1)
+# dataloader_iter2 = iter(dataloader2)
 
 # for i in range(1):
-#     x1, y1 = next(dataloader_iter1)
-#   x2, y2 = next(dataloader_iter2)
+# #     # x1, y1 = next(dataloader_iter1)
+#     x2, y2 = next(dataloader_iter2)
 
 # print(x2[0].type())
 # print(x2[1].type())
@@ -148,7 +170,17 @@ class BumpyDataset(Dataset):
 # print(x1[1].size()) #[1, 8, 2])
 # print(y1.size()) #([1, 8, 1])
 
-#visualizing the image
-# img_to_show = np.moveaxis(x2[0][0].numpy(), 0, -1) #(732, 1490, 3)
+# img_batch = x2[0].numpy()
+# print(np.shape(img_batch))
+# means = np.mean(img_batch, axis=(0,2,3))
+# print(np.shape(means))
+# print(means)
+
+# print(x2[0].size()) #torch.Size([1, 3, 68, 248]
+# print(x2[0][0].size()) #torch.Size([3, 68, 248])
+# print(x2[0][0].numpy())
+
+# #visualizing the image
+# img_to_show = np.moveaxis(x2[0][0].numpy(), 0, -1).astype(int) #(732, 1490, 3)
 # plt.imshow(img_to_show, cmap="gray")
 # plt.show()

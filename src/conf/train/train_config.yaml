@@ -3,8 +3,9 @@ hyperparams:
   img_data_path: 'data/processed/imgs/'
   csv_data_path: 'data/processed/data.csv'
   img_rescale: 122
+  crop_ratio: 0.45
   batch_size: 32 #same as paper
   shuffle: True
   num_epoch: 20
-  seed: 123
+  seed: 222
   lr: 0.0001 #same as paper

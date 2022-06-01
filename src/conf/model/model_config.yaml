@@ -1,6 +1,6 @@
 #model_config.yaml
 hyperparams:
-  img_height: 122
+  img_height: 68
   img_width: 248
 
   # define convolutional layer parameters

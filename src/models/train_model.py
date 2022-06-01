@@ -1,6 +1,6 @@
 import torch
 from src.models.bumpy_dataset import BumpyDataset
-from src.models.bumpy_dataset import Rescale, Normalize, ToTensor
+from src.models.bumpy_dataset import Rescale, NormalizeIMG, ToTensor, Crop
 from src.models.model import Net
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
@@ -8,7 +8,6 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import os
 import numpy as np
-import sys
 import hydra
 from hydra.utils import get_original_cwd
 import logging
@@ -44,7 +43,7 @@ def train(cfg):
      dataset = BumpyDataset(
           get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
           get_original_cwd() + "/" + train_params.img_data_path, 
-          transform=transforms.Compose([Rescale(train_params.img_rescale), Normalize(), ToTensor()])
+          transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
           )
 
      train_size = int(0.8 * len(dataset)) #10433 
@@ -132,7 +131,7 @@ def train(cfg):
      log.info("Finished Training")
      plt.figure(figsize=(9, 9))
      nrofbatches_train = len(train_set)/train_params.batch_size
-     nrofbatches_val = len(val_set)/train_params.batch_size
+     nrofbatches_val = np.ceil(len(val_set)/train_params.batch_size)
      nrofsavings_val = np.floor(nrofbatches_val / 10.0)
      val_losses_per_epoch = np.mean(np.array(val_losses).reshape(-1, int(nrofsavings_val)), axis=1)
 
@@ -150,6 +149,10 @@ def train(cfg):
 
 @hydra.main(config_path= "../conf", config_name="default_config.yaml")
 def main(cfg):
+
+     comment = "2 day data, cropping, normalizing each channel separately"
+     log.info(comment)
+
      torch.manual_seed(cfg.train.hyperparams.seed)
      train(cfg)
 
