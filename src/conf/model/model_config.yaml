@@ -23,7 +23,10 @@ hyperparams:
   # define LSTM layer parameters
   input_size_lstm: 2
   hidden_size_lstm: 64 #(same as paper)
-  num_layers_lstm: 1
+  num_layers_lstm: 8
   
   # define output linear layer parameters
   num_lout: 1
+
+  #define dropout probability for all layers
+  p_dropout: 0.25

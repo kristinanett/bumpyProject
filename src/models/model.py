@@ -11,35 +11,6 @@ class Net(nn.Module):
     def __init__(self, model_params):
         super(Net, self).__init__()
 
-        # model_config.yaml content for profiling (cannot use hydra)
-        # img_height= 122
-        # img_width= 248
-
-        # # define convolutional layer parameters
-        # channels_conv1= 3
-        # num_filters_conv1= 32
-        # kernel_size_conv1= 5
-        # stride_conv1= 2
-        # padding_conv1= 0
-
-        # # define second convolutional layer parameters
-        # num_filters_conv2= 64
-        # kernel_size_conv2= 3
-        # stride_conv2= 2
-        # padding_conv2= 0
-
-        # # define linear layer parameters
-        # num_l1= 256
-        # num_l2= 64 #has to be same as hidden in lstm
-        
-        # # define LSTM layer parameters
-        # input_size_lstm= 2
-        # hidden_size_lstm= 64 #(same as paper)
-        # num_layers_lstm= 1
-        
-        # # define output linear layer parameters
-        # num_lout= 1
-
         self.conv_1 = nn.Conv2d(in_channels=model_params.channels_conv1,
                              out_channels=model_params.num_filters_conv1,
                              kernel_size=model_params.kernel_size_conv1,
@@ -82,6 +53,9 @@ class Net(nn.Module):
                             out_features=model_params.num_lout,
                             bias=False)
 
+        #dropout
+        self.dropout = nn.Dropout2d(p=model_params.p_dropout)
+
     def forward(self, x):
         x_img = x[0]
         x_com = x[1]
@@ -89,32 +63,33 @@ class Net(nn.Module):
         ################## img part ##############################
 
         #convolutional layer one
-        #print(x[0].size()) #torch.Size([1, 3, 732, 1490])
-        x_img = self.conv_1(x_img) 
-        x_img = F.relu(x_img)
-        #print(x0.size()) #torch.Size([1, 32, 364, 743])
+        #print(x_img.size()) #torch.Size([1, 3, 732, 1490])
+        x_img = self.conv_1(x_img)
+        x_img = F.relu(self.dropout(x_img)) #torch.Size([1, 32, 364, 743])
 
         #convolutional layer two
-        x_img = self.conv_2(x_img) 
-        x_img = F.relu(x_img)
+        x_img = self.conv_2(x_img)
+        x_img = F.relu(self.dropout(x_img))
 
         #2 fully connected layers
         x_img = x_img.view(-1, self.l1_in_features) #flatten
-        x_img = F.relu(self.l_1(x_img))
-        #print(x0.size()) #torch.Size([1, 100])
-        x_img = F.relu(self.l_2(x_img))
+        x_img = F.relu(self.dropout(self.l_1(x_img))) #torch.Size([1, 100])
+        x_img = F.relu(self.dropout(self.l_2(x_img))) #torch.Size((32, 64))
 
         ################## LSTM part #############################
 
         #set image part output as the first hidden state to the LSTM
-        h0 = x_img.reshape(1, x_com.size(0), x_img.size(-1)).requires_grad_()
-        c0 = torch.zeros(1, x_com.size(0), x_img.size(-1)).requires_grad_() #x[1].size(0) is batch size
+        h0 = x_img.reshape(1, x_com.size(0), x_img.size(-1)).requires_grad_() #1, 32, 64
+        c0 = torch.zeros(1, x_com.size(0), x_img.size(-1)).requires_grad_() #x_com.size(0) is batch size
+
+        h00 = torch.cat((h0, h0, h0, h0, h0, h0, h0, h0), 0) #for LSTM with 8 layers (8, 32, 64)
+        c00 = torch.cat((c0, c0, c0, c0, c0, c0, c0, c0), 0)
 
         if torch.cuda.is_available():
-            h0,c0 = h0.cuda() , c0.cuda()
+            h00,c00 = h00.cuda() , c00.cuda()
 
-        #print(x[1].size()) #torch.Size([1, 8, 2])
-        x_com, (h_n, c_n) = self.lstm(x_com, (h0, c0)) #(h0.detach(), c0.detach()))
+        #print(x_com.size()) #torch.Size([1, 8, 2])
+        x_com, (h_n, c_n) = self.lstm(x_com, (h00, c00)) #(h0.detach(), c0.detach()))
 
         #x55 = x1.view(-1, 100) #torch.Size([8, 100])
 

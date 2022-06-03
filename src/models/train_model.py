@@ -150,7 +150,7 @@ def train(cfg):
 @hydra.main(config_path= "../conf", config_name="default_config.yaml")
 def main(cfg):
 
-     comment = "2 day data, cropping, normalizing each channel separately"
+     comment = "0405+1605 data, dropout in each layer but LSTM and the last linear"
      log.info(comment)
 
      torch.manual_seed(cfg.train.hyperparams.seed)
