@@ -54,29 +54,38 @@ class Net(nn.Module):
                             bias=False)
 
         #dropout
-        self.dropout = nn.Dropout2d(p=model_params.p_dropout)
+        self.dropout1 = nn.Dropout(p=model_params.p_dropout_conv)
+        self.dropout2 = nn.Dropout(p=model_params.p_dropout_conv)
+        self.dropout3 = nn.Dropout(p=model_params.p_dropout_lin)
+        self.dropout4 = nn.Dropout(p=model_params.p_dropout_lin)
+
+        #batch normalization
+        self.batchNorm_conv1 = nn.BatchNorm2d(model_params.num_filters_conv1)
+        self.batchNorm_conv2 = nn.BatchNorm2d(model_params.num_filters_conv2)
+        self.batchNorm_l1 = nn.BatchNorm1d(model_params.num_l1)
+        self.batchNorm_l2 = nn.BatchNorm1d(model_params.num_l2)
 
     def forward(self, x):
         x_img = x[0]
         x_com = x[1]
 
-        ################## img part ##############################
+        ################## IMG part ##############################
 
         #convolutional layer one
         #print(x_img.size()) #torch.Size([1, 3, 732, 1490])
         x_img = self.conv_1(x_img)
-        x_img = F.relu(self.dropout(x_img)) #torch.Size([1, 32, 364, 743])
+        x_img = F.relu(self.dropout1(x_img)) #torch.Size([1, 32, 364, 743])
 
         #convolutional layer two
         x_img = self.conv_2(x_img)
-        x_img = F.relu(self.dropout(x_img))
+        x_img = F.relu(self.dropout2(x_img))
 
         #2 fully connected layers
         x_img = x_img.view(-1, self.l1_in_features) #flatten
-        x_img = F.relu(self.dropout(self.l_1(x_img))) #torch.Size([1, 100])
-        x_img = F.relu(self.dropout(self.l_2(x_img))) #torch.Size((32, 64))
+        x_img = F.relu(self.dropout3(self.l_1(x_img))) #torch.Size([1, 100])
+        x_img = F.relu(self.dropout4(self.l_2(x_img))) #torch.Size((32, 64))
 
-        ################## LSTM part #############################
+        ################## LSTM part ###################################
 
         #set image part output as the first hidden state to the LSTM
         h0 = x_img.reshape(1, x_com.size(0), x_img.size(-1)).requires_grad_() #1, 32, 64

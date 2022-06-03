@@ -51,8 +51,8 @@ def train(cfg):
      test_size = len(dataset) - train_size - val_size
      train_set, val_set, test_set = torch.utils.data.random_split(dataset, [train_size, val_size, test_size], generator = torch.manual_seed(cfg.train.hyperparams.seed))
 
-     train_loader = DataLoader(train_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=4)
-     val_loader = DataLoader(val_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=4)
+     train_loader = DataLoader(train_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=4, drop_last = True)
+     val_loader = DataLoader(val_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=4, drop_last = True)
 
      #check shapes
      x, y = next(iter(train_loader))
@@ -131,7 +131,7 @@ def train(cfg):
      log.info("Finished Training")
      plt.figure(figsize=(9, 9))
      nrofbatches_train = len(train_set)/train_params.batch_size
-     nrofbatches_val = np.ceil(len(val_set)/train_params.batch_size)
+     nrofbatches_val = (len(val_set)/train_params.batch_size) #add ceil if using the last non-complete batch
      nrofsavings_val = np.floor(nrofbatches_val / 10.0)
      val_losses_per_epoch = np.mean(np.array(val_losses).reshape(-1, int(nrofsavings_val)), axis=1)
 
@@ -140,9 +140,12 @@ def train(cfg):
 
      plt.plot(x_train, np.array(train_losses), 'r', marker='o', linestyle='-', label="Training Error")
      plt.plot(x_val, np.array(val_losses_per_epoch), 'b', marker='o', linestyle='-', label="Validation Error")
+     plt.grid()
      plt.legend(fontsize=20)
      plt.xlabel("Train step", fontsize=20)
      plt.ylabel("Error", fontsize=20)
+     ax = plt.gca()
+     ax.set_ylim([0, 1.4])
      os.makedirs("reports/figures/", exist_ok=True)
      plt.savefig("reports/figures/training_curve1.png")
 
@@ -150,7 +153,7 @@ def train(cfg):
 @hydra.main(config_path= "../conf", config_name="default_config.yaml")
 def main(cfg):
 
-     comment = "0405+1605 data, dropout in each layer but LSTM and the last linear"
+     comment = "0405+1605 data, more units + longer run + new lr"
      log.info(comment)
 
      torch.manual_seed(cfg.train.hyperparams.seed)

@@ -17,16 +17,17 @@ hyperparams:
   padding_conv2: 0
 
   # define linear layer parameters
-  num_l1: 256
-  num_l2: 64 #has to be same as hidden in lstm
+  num_l1: 512
+  num_l2: 128 #has to be same as hidden in lstm
   
   # define LSTM layer parameters
   input_size_lstm: 2
-  hidden_size_lstm: 64 #(same as paper)
+  hidden_size_lstm: 128 #(same as paper)
   num_layers_lstm: 8
   
   # define output linear layer parameters
   num_lout: 1
 
   #define dropout probability for all layers
-  p_dropout: 0.25
+  p_dropout_conv: 0.25
+  p_dropout_lin: 0.25
