@@ -145,7 +145,7 @@ def train(cfg):
      plt.xlabel("Train step", fontsize=20)
      plt.ylabel("Error", fontsize=20)
      ax = plt.gca()
-     ax.set_ylim([0, 1.4])
+     ax.set_ylim([0, 2.0])
      os.makedirs("reports/figures/", exist_ok=True)
      plt.savefig("reports/figures/training_curve1.png")
 
@@ -153,7 +153,7 @@ def train(cfg):
 @hydra.main(config_path= "../conf", config_name="default_config.yaml")
 def main(cfg):
 
-     comment = "0405+1605 data, more units + longer run + new lr"
+     comment = "0405+1605+0106 data, increased learning rate and batch size"
      log.info(comment)
 
      torch.manual_seed(cfg.train.hyperparams.seed)

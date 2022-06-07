@@ -139,7 +139,7 @@ class ProcessDay():
                 img_time = t.to_nsec()/1000000
                 
                 #the messages that should be saved reach here
-                if (t.to_nsec() > (com_start_time * (10 ** 9))) and (t.to_nsec() < ((com_end_time -  8.2) * (10 ** 9))):
+                if (t.to_nsec() > ((com_start_time + 1) * (10 ** 9))) and (t.to_nsec() < ((com_end_time -  8.2) * (10 ** 9))):
                     
                     #looping 8 times for each image to get 8 future commands and corresponding imu values
                     for j in range(8):

@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import json
+import statsmodels.api as sm
 
 class Analyser():
     def __init__(self, dir):
@@ -61,10 +62,16 @@ print(analyser2.df_imu.describe())
 print()
 print(analyser3.df_imu.describe())
 
-print(analyser1.df_imu[analyser1.df_imu > 40.0].count())
-print(analyser2.df_imu[analyser2.df_imu > 40.0].count())
-print(analyser3.df_imu[analyser3.df_imu > 40.0].count())
+print(analyser1.df_imu[analyser1.df_imu > 20.0].count())
+print(analyser2.df_imu[analyser2.df_imu > 20.0].count())
+print(analyser3.df_imu[analyser3.df_imu > 20.0].count())
 print(analyser3.df_imu[analyser3.df_imu['gyro_y'] > 40].index)
+
+print(analyser1.df_imu['gyro_y'].skew())
+print(analyser1.df_imu['gyro_y'].kurtosis())
+
+# fig = sm.qqplot(analyser3.df_imu['gyro_y'])
+# plt.show()
 
 fig, axes = plt.subplots(1, 2)
 
