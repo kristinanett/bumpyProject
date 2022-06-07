@@ -1,6 +1,7 @@
 import glob
 import numpy as np 
 import pandas as pd
+import matplotlib.pyplot as plt
 import json
 
 class Analyser():
@@ -21,12 +22,21 @@ class Analyser():
 
     def readIMUData(self):
         df_imu = pd.DataFrame()
-        for imu_file in self.imu_file_list:
+        for idx, imu_file in enumerate(self.imu_file_list):
+
+            #get dataframe
             f_imu = open(imu_file, "r")
             df_current_file = pd.read_csv(f_imu, sep=" ", usecols=[0,2,3], names=["times","gyro_y", "gyro_z"])
             df_current_file = df_current_file.dropna()
-            df_imu = pd.concat([df_imu, df_current_file])
-        return df_imu
+
+            #filtering out standing parts
+            lines = open(self.mqtt_folder_list[idx] + "dir/log000", "r").readlines()
+            com_start_time = json.loads(lines[0])["time"]/1000 #seconds
+            com_end_time = json.loads(lines[-1])["time"]/1000 #seconds
+            df_current_file = df_current_file.loc[(df_current_file['times'] > (com_start_time * (10 ** 3))+1000) & (df_current_file['times'] < ((com_end_time -  8.2) * (10 ** 3)))]
+            
+            df_imu = pd.concat([df_imu, df_current_file], ignore_index = True)
+        return df_imu 
 
     def readCOMData(self):
         df_com = []
@@ -40,4 +50,31 @@ class Analyser():
                 df_com.append([com_time, linear_vel, angle])
         return pd.DataFrame(df_com, columns=['time', "x", "z"])
 
-analyser = Analyser("data/raw/0405/")
+analyser1 = Analyser("data/raw/0405/")
+analyser2 = Analyser("data/raw/1605/")
+analyser3 = Analyser("data/raw/0106/")
+
+
+print(analyser1.df_imu.describe())
+print()
+print(analyser2.df_imu.describe())
+print()
+print(analyser3.df_imu.describe())
+
+print(analyser1.df_imu[analyser1.df_imu > 40.0].count())
+print(analyser2.df_imu[analyser2.df_imu > 40.0].count())
+print(analyser3.df_imu[analyser3.df_imu > 40.0].count())
+print(analyser3.df_imu[analyser3.df_imu['gyro_y'] > 40].index)
+
+fig, axes = plt.subplots(1, 2)
+
+analyser1.df_imu.hist("gyro_y", bins='auto', ax=axes[0])  
+analyser2.df_imu.hist("gyro_y", bins='auto', ax=axes[0])
+analyser3.df_imu.hist("gyro_y", bins='auto', ax=axes[0])
+axes[0].set_title("IMU histogram gyro-y")
+
+analyser1.df_imu.hist("gyro_z", bins='auto', ax=axes[1])  
+analyser2.df_imu.hist("gyro_z", bins='auto', ax=axes[1])
+analyser3.df_imu.hist("gyro_z", bins='auto', ax=axes[1])
+axes[1].set_title("IMU histogram gyro-z")
+plt.show()
