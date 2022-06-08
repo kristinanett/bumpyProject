@@ -74,16 +74,16 @@ class Net(nn.Module):
         #convolutional layer one
         #print(x_img.size()) #torch.Size([1, 3, 732, 1490])
         x_img = self.conv_1(x_img)
-        x_img = F.relu(self.dropout1(x_img)) #torch.Size([1, 32, 364, 743])
+        x_img = self.batchNorm_conv1(F.relu(self.dropout1(x_img))) #torch.Size([1, 32, 364, 743])
 
         #convolutional layer two
         x_img = self.conv_2(x_img)
-        x_img = F.relu(self.dropout2(x_img))
+        x_img = self.batchNorm_conv2(F.relu(self.dropout2(x_img)))
 
         #2 fully connected layers
         x_img = x_img.view(-1, self.l1_in_features) #flatten
-        x_img = F.relu(self.dropout3(self.l_1(x_img))) #torch.Size([1, 100])
-        x_img = F.relu(self.dropout4(self.l_2(x_img))) #torch.Size((32, 64))
+        x_img = self.batchNorm_l1(F.relu(self.dropout3(self.l_1(x_img)))) #torch.Size([1, 100])
+        x_img = self.batchNorm_l2(F.relu(self.dropout4(self.l_2(x_img)))) #torch.Size((32, 64))
 
         ################## LSTM part ###################################
 

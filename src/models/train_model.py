@@ -11,6 +11,7 @@ import numpy as np
 import hydra
 from hydra.utils import get_original_cwd
 import logging
+import wandb
 
 #create dataset and dataloader
 #dataset = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([Normalize(), ToTensor()]))
@@ -27,12 +28,16 @@ import logging
 #outputs = model(x)
 
 log = logging.getLogger(__name__)
+wandb.init(project='bumpyProject')
 
 def train(cfg):
      """Function for training the model in model.py and saving the resulting state dict in models.
      Also produces a training loss graph which is saved in reports/figures"""
      train_params = cfg.train.hyperparams
      model_params = cfg.model.hyperparams
+
+     config = wandb.config
+     setWandbConfig(train_params, model_params, config)
 
      model = Net(model_params)
      if torch.cuda.is_available():
@@ -103,6 +108,7 @@ def train(cfg):
 
                if i % 10 == 9:  # print and save training loss every 10 batches
                     log.info("[%d, %5d] train loss: %.3f" % (epoch + 1, i + 1, train_loss / 10))
+                    wandb.log({"train loss": train_loss / 10})
                     train_losses.append(train_loss / 10)  # (loss.data.numpy())
                     train_loss = 0.0
 
@@ -127,6 +133,7 @@ def train(cfg):
 
                if i % 10 == 9:  # print and save validation loss every 10 batches
                     log.info("[%d, %5d] validation loss: %.3f" % (epoch + 1, i + 1, val_loss / 10))
+                    wandb.log({"validation loss": val_loss / 10})
                     val_losses.append(val_loss / 10)  # (loss.data.numpy())
                     val_loss = 0.0
           
@@ -156,11 +163,43 @@ def train(cfg):
      os.makedirs("reports/figures/", exist_ok=True)
      plt.savefig("reports/figures/training_curve1.png")
 
+def setWandbConfig(train_params, model_params, config):
+     #training params
+     config.img_data_path = train_params.img_data_path
+     config.csv_data_path = train_params.csv_data_path
+     config.img_rescale = train_params.img_rescale
+     config.crop_ratio = train_params.crop_ratio
+     config.batch_size = train_params.batch_size
+     config.shuffle = train_params.shuffle
+     config.num_epoch = train_params.num_epoch
+     config.seed = train_params.seed
+     config.lr = train_params.lr
+
+     #model params
+     config.img_height = model_params.img_height
+     config.img_width = model_params.img_width
+     config.channels_conv1 = model_params.channels_conv1
+     config.num_filters_conv1 = model_params.num_filters_conv1
+     config.kernel_size_conv1 = model_params.kernel_size_conv1
+     config.stride_conv1 = model_params.stride_conv1
+     config.padding_conv1 = model_params.padding_conv1
+     config.num_filters_conv2 = model_params.num_filters_conv2
+     config.kernel_size_conv2 = model_params.kernel_size_conv2
+     config.stride_conv2 = model_params.stride_conv2
+     config.padding_conv2 = model_params.padding_conv2
+     config.num_l1 = model_params.num_l1
+     config.num_l2 = model_params.num_l2
+     config.input_size_lstm = model_params.input_size_lstm
+     config.hidden_size_lstm = model_params.hidden_size_lstm
+     config.num_layers_lstm = model_params.num_layers_lstm
+     config.num_lout = model_params.num_lout
+     config.p_dropout_conv = model_params.p_dropout_conv
+     config.p_dropout_lin = model_params.p_dropout_lin
 
 @hydra.main(config_path= "../conf", config_name="default_config.yaml")
 def main(cfg):
 
-     comment = "0405+1605 data, decreased batch size to 16"
+     comment = "0405+1605 data, added batchnorm to all conv and lin layers"
      log.info(comment)
 
      torch.manual_seed(cfg.train.hyperparams.seed)
