@@ -29,5 +29,5 @@ hyperparams:
   num_lout: 1
 
   #define dropout probability for all layers
-  p_dropout_conv: 0.25
-  p_dropout_lin: 0.25
+  p_dropout_conv: 0.35
+  p_dropout_lin: 0.35

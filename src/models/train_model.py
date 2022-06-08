@@ -199,7 +199,7 @@ def setWandbConfig(train_params, model_params, config):
 @hydra.main(config_path= "../conf", config_name="default_config.yaml")
 def main(cfg):
 
-     comment = "0405+1605 data, added batchnorm to all conv and lin layers"
+     comment = "0405+1605 data, batchnorm only on last conv and last lin, increased dropout"
      log.info(comment)
 
      torch.manual_seed(cfg.train.hyperparams.seed)
