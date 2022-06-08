@@ -40,9 +40,16 @@ def train(cfg):
           model.cuda()
 
      #initialize the train and validation set
+     # dataset = BumpyDataset(
+     #      get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
+     #      get_original_cwd() + "/" + train_params.img_data_path, 
+     #      transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
+     #      )
+
+     #when running on dtu hpc (also change train config data paths)
      dataset = BumpyDataset(
-          get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
-          get_original_cwd() + "/" + train_params.img_data_path, 
+          train_params.csv_data_path, 
+          train_params.img_data_path, 
           transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
           )
 
@@ -153,7 +160,7 @@ def train(cfg):
 @hydra.main(config_path= "../conf", config_name="default_config.yaml")
 def main(cfg):
 
-     comment = "0405+1605+0106 data, increased learning rate and batch size"
+     comment = "0405+1605 data, decreased batch size to 16"
      log.info(comment)
 
      torch.manual_seed(cfg.train.hyperparams.seed)

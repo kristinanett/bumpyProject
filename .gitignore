@@ -79,6 +79,7 @@ target/
 /data/
 /outputs/
 /models/
+/cluster_output/
 
 # Mac OS-specific storage files
 .DS_Store
