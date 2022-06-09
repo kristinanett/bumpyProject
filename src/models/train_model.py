@@ -28,14 +28,16 @@ import wandb
 #outputs = model(x)
 
 log = logging.getLogger(__name__)
-wandb.init(project='bumpyProject')
 
-def train(cfg):
+
+def train(cfg, cmnt):
      """Function for training the model in model.py and saving the resulting state dict in models.
      Also produces a training loss graph which is saved in reports/figures"""
      train_params = cfg.train.hyperparams
      model_params = cfg.model.hyperparams
 
+     #wandb setup
+     wandb.init(project='bumpyProject', group = "lr experiments", notes=cmnt)
      config = wandb.config
      setWandbConfig(train_params, model_params, config)
 
@@ -113,6 +115,7 @@ def train(cfg):
                     train_loss = 0.0
 
           val_loss = 0.0
+          val_loss_wandb = []
           model.eval()
 
           for i, data in enumerate(val_loader, 0):
@@ -130,14 +133,17 @@ def train(cfg):
 
                # print statistics
                val_loss += batch_loss.item()  # loss.data[0] loss.detach().numpy()
+               val_loss_wandb.append(batch_loss.item())
 
-               if i % 10 == 9:  # print and save validation loss every 10 batches
+               if i % 10 == 9:  # print and save average validation loss for every epoch
                     log.info("[%d, %5d] validation loss: %.3f" % (epoch + 1, i + 1, val_loss / 10))
-                    wandb.log({"validation loss": val_loss / 10})
                     val_losses.append(val_loss / 10)  # (loss.data.numpy())
                     val_loss = 0.0
-          
 
+          mean_loss_epoch = np.mean(np.array(val_loss_wandb))
+          wandb.log({"validation loss": mean_loss_epoch})
+          val_loss_wandb = []
+          
      # create directory if it does no exist already and save model
      os.makedirs("models/", exist_ok=True)
      torch.save(model.state_dict(), "models/thismodel.pt")
@@ -199,11 +205,11 @@ def setWandbConfig(train_params, model_params, config):
 @hydra.main(config_path= "../conf", config_name="default_config.yaml")
 def main(cfg):
 
-     comment = "0405+1605 data, batchnorm only on last conv and last lin, increased dropout"
+     comment = "0405+1605 data, batchnorm on all conv and lin, lr = 0.01"
      log.info(comment)
 
      torch.manual_seed(cfg.train.hyperparams.seed)
-     train(cfg)
+     train(cfg, comment)
 
 if __name__ == "__main__":
      main()

@@ -6,6 +6,6 @@ hyperparams:
   crop_ratio: 0.45
   batch_size: 32 #32 #same as paper
   shuffle: True
-  num_epoch: 20
-  seed: 362
-  lr: 0.0001 #0.0001 same as paper
+  num_epoch: 30
+  seed: 868
+  lr: 0.01 #0.0001 same as paper [0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01]
