@@ -87,7 +87,7 @@ def train(cfg, cmnt):
 
           for i, data in enumerate(train_loader, 0):
                # data contains inputs, labels and inputs is a list of [images, commands]
-               inputs, labels = data
+               inputs, labels, idx = data
                # print(inputs[1])
                # print(labels)
 
@@ -120,7 +120,7 @@ def train(cfg, cmnt):
 
           for i, data in enumerate(val_loader, 0):
                # data contains inputs, labels and inputs is a list of [images, commands]
-               inputs, labels = data
+               inputs, labels, idx = data
 
                if torch.cuda.is_available():
                     inputs, labels = [inputs[0].cuda(), inputs[1].cuda()] , labels.cuda()

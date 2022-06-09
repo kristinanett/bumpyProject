@@ -140,20 +140,20 @@ class BumpyDataset(Dataset):
         coms_final = torch.transpose(torch.cat((sample['lin_coms'], sample['ang_coms']), 0), 0, 1)
         imu_final = torch.transpose(sample['imu_data'], 0, 1)
 
-        return [sample['image'], coms_final], imu_final
+        return [sample['image'], coms_final], imu_final, idx
 
 #Some code to test the dataset is working properly
-# dataset1 = BumpyDataset("data/processed/data.csv","data/processed/imgs/", transform=transforms.Compose([NormalizeIMG(), ToTensor()]))
-# dataloader1 = DataLoader(dataset1, batch_size=1)
-# dataloader_iter1 = iter(dataloader1)
+dataset1 = BumpyDataset("data/processed/data.csv","data/processed/imgs/", transform=transforms.Compose([NormalizeIMG(), ToTensor()]))
+dataloader1 = DataLoader(dataset1, batch_size=1)
+dataloader_iter1 = iter(dataloader1)
 
 # dataset2 = BumpyDataset("data/processed/data.csv","data/processed/imgs/", transform=transforms.Compose([Rescale(122), Crop(0.45), NormalizeIMG(), ToTensor()])) #68x248aftercrop
 # # #dataset2.__getitem__(7360)
 # dataloader2 = DataLoader(dataset2, batch_size=1)
 # dataloader_iter2 = iter(dataloader2)
 
-# for i in range(1):
-# #     # x1, y1 = next(dataloader_iter1)
+for i in range(1):
+    x1, y1, idx = next(dataloader_iter1)
 #     x2, y2 = next(dataloader_iter2)
 
 # print(x2[0].type())

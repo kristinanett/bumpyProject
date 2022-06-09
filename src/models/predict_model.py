@@ -4,13 +4,15 @@ import hydra
 from hydra.utils import get_original_cwd
 from omegaconf import OmegaConf
 from src.models.bumpy_dataset import BumpyDataset
-from src.models.bumpy_dataset import Rescale, NormalizeIMG, ToTensor
+from src.models.bumpy_dataset import Rescale, NormalizeIMG, ToTensor, Crop
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
 import os
+import cv2
+import random
 log = logging.getLogger(__name__)
 
 def predict(cfg, path):
@@ -34,25 +36,53 @@ def predict(cfg, path):
     dataset = BumpyDataset(
         get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
         get_original_cwd() + "/" + train_params.img_data_path, 
-        transform=transforms.Compose([Rescale(train_params.img_rescale), NormalizeIMG(), ToTensor()])
+        transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
         )
 
-    train_size = int(0.8 * len(dataset)) #18624
-    val_size = int(0.15*len(dataset)) #3492
-    test_size = len(dataset) - train_size - val_size #1164
+    train_size = int(0.8 * len(dataset)) 
+    val_size = int(0.15*len(dataset)) 
+    test_size = len(dataset) - train_size - val_size 
     train_set, val_set, test_set = torch.utils.data.random_split(dataset, [train_size, val_size, test_size], generator = torch.manual_seed(cfg.train.hyperparams.seed))
     test_loader = DataLoader(test_set, batch_size=1, shuffle=train_params.shuffle, num_workers=4)
     test_loader_iter = iter(test_loader)
 
     #getting some data
-    for i in range(3):
-        inputs, labels = next(test_loader_iter)
+    for i in range(13):
+        inputs, labels, idx = next(test_loader_iter)
+        #12 asphalt
 
     if torch.cuda.is_available():
         inputs, labels = [inputs[0].cuda(), inputs[1].cuda()] , labels.cuda()
+
+    #creating two routes (left and right) [1, 8, 2])
+    fake_lin_coms_left = []
+    fake_lin_coms_right = []
+    boundaries = [0.45, 0.55]
+    for i in range(8):
+        linear_x_left = random.uniform(boundaries[0], boundaries[1])
+        linear_x_right = random.uniform(boundaries[0], boundaries[1])
+        fake_lin_coms_left.append(linear_x_left)
+        fake_lin_coms_right.append(linear_x_right)
+
+    path_left = torch.tensor([[[fake_lin_coms_left[0], 0.2], [fake_lin_coms_left[1], 0.2], [fake_lin_coms_left[2], 0.2], [fake_lin_coms_left[3], 0.3], 
+                            [fake_lin_coms_left[4], 0.2], [fake_lin_coms_left[5], 0.1], [fake_lin_coms_left[6], 0.2], [fake_lin_coms_left[7], 0.2]]]).cuda()
+
+    path_right = torch.tensor([[[fake_lin_coms_right [0], -0.2], [fake_lin_coms_right [1], -0.2], [fake_lin_coms_right [2], -0.2], [fake_lin_coms_right [3], -0.3], 
+                            [fake_lin_coms_right [4], -0.2], [fake_lin_coms_right [5], -0.1], [fake_lin_coms_right [6], -0.2], [fake_lin_coms_right [7], -0.2]]]).cuda()
+
+    #making fake predictions
+    model.eval()
+    output_left = model([inputs[0], path_left])
+    prediction_left = np.round(output_left[0].cpu().detach().numpy(), 4)
+
+    model.eval()
+    output_right = model([inputs[0], path_right])
+    prediction_right = np.round(output_right[0].cpu().detach().numpy(), 4)
     
-    #making a prediction and printing it
-    #Stats: 0.49952415462324845 0.0288900208592242 -0.010268470790378011 0.24212891170241857 9.19860582807647 13.002102541602538
+    path_comparison_table = np.concatenate((prediction_left, prediction_right), axis=1)
+    log.info(f"Predicted normalized imu values for left and right path are: \n {path_comparison_table}")
+
+    #making a prediction for the actual path and printing it
     model.eval()
     output = model(inputs)
     predicted = np.round(output[0].cpu().detach().numpy(), 4)
@@ -60,22 +90,36 @@ def predict(cfg, path):
     comparison_table = np.concatenate((actual, predicted), axis=1)
     log.info(f"Actual (column0) VS predicted (column1) normalized imu values for this path are: \n {comparison_table}")
 
-    #showing the denormalized input data
-    lin_coms = np.round(((inputs[1][0].cpu()[:, 0].numpy())*0.0288900208592242)+0.49952415462324845, 3)
-    ang_coms = np.round(((inputs[1][0].cpu()[:, 1].numpy())*0.24212891170241857)+(-0.010268470790378011), 3)
+    #showing the denormalized input coms data
+    lin_com_mean, lin_com_std, ang_com_mean, ang_com_std, imu_mean, imu_std = dataset.stats
+    lin_coms = np.round(((inputs[1][0].cpu()[:, 0].numpy())*lin_com_std)+lin_com_mean, 3)
+    ang_coms = np.round(((inputs[1][0].cpu()[:, 1].numpy())*ang_com_std)+(-ang_com_mean), 3)
     log.info(f"The path lin coms are: {lin_coms}")
     log.info(f"The path ang coms are: {ang_coms}")
-    img_to_show = (np.moveaxis(inputs[0][0].cpu().numpy(), 0, -1))  #(122, 248, 3)
-    img_denormalized = ((img_to_show*127.5)+127.5).astype(int) #before floats -1 to 1, after ints 0 to 255
 
-    plt.imshow(img_denormalized)
+    #getting the original image to show (the one from dataloader is normalized)
+    idx = int(idx.numpy()[0])
+    img_name = "frame%06i.png" % idx
+    cv_img = cv2.imread(get_original_cwd() + "/" + "data/processed/imgs/" + img_name)
+    rgb_img_original = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB) #(732, 1490, 3)
+    h, w = rgb_img_original.shape[:2]
+    if h > w:
+        new_h, new_w = train_params.img_rescale* h / w, train_params.img_rescale
+    else:
+        new_h, new_w = train_params.img_rescale, train_params.img_rescale * w / h
+    new_h, new_w = int(new_h), int(new_w)
+    rescale_img = cv2.resize(rgb_img_original, (new_w, new_h))
+    crop_img = rescale_img[int(train_params.crop_ratio*new_h):new_h, :].copy()
+
+    plt.imshow(crop_img)
     os.makedirs("reports/figures/", exist_ok=True)
     plt.savefig("reports/figures/predicted_img.png")
     plt.show()
 
+
 @hydra.main()
-def main(cfg):
-    #Command line call: python src/models/predict_model.py +config_path=outputs/2022-05-26/14-07-07/.hydra/config.yaml
+def main(cfg): 
+    #Command line call: python src/models/predict_model.py +config_path=outputs/2022-06-03/20-01-18/.hydra/config.yaml
     path = cfg.config_path
     cfg = OmegaConf.load(get_original_cwd() + "/" + path)
     torch.manual_seed(cfg.train.hyperparams.seed)
