@@ -1,7 +1,7 @@
 #train_config.yaml
 hyperparams:
-  img_data_path: '/work3/s203129/0405and1605/imgs/' #data/processed/imgs/
-  csv_data_path: '/work3/s203129/0405and1605/data.csv' #data/processed/data.csv
+  img_data_path: data/processed/imgs/ #'/work3/s203129/0405and1605/imgs/'
+  csv_data_path: data/processed/data.csv  #'/work3/s203129/0405and1605/data.csv'
   img_rescale: 122
   crop_ratio: 0.45
   batch_size: 32 #32 #same as paper

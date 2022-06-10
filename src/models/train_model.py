@@ -47,18 +47,18 @@ def train(cfg, cmnt):
           model.cuda()
 
      #initialize the train and validation set
-     # dataset = BumpyDataset(
-     #      get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
-     #      get_original_cwd() + "/" + train_params.img_data_path, 
-     #      transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
-     #      )
-
-     #when running on dtu hpc (also change train config data paths)
      dataset = BumpyDataset(
-          train_params.csv_data_path, 
-          train_params.img_data_path, 
+          get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
+          get_original_cwd() + "/" + train_params.img_data_path, 
           transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
           )
+
+     #when running on dtu hpc (also change train config data paths)
+     # dataset = BumpyDataset(
+     #      train_params.csv_data_path, 
+     #      train_params.img_data_path, 
+     #      transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
+     #      )
 
      train_size = int(0.8 * len(dataset)) #10433 
      val_size = int(0.15*len(dataset)) #2609
@@ -69,7 +69,7 @@ def train(cfg, cmnt):
      val_loader = DataLoader(val_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=4, drop_last = True)
 
      #check shapes
-     x, y = next(iter(train_loader))
+     x, y, idx = next(iter(train_loader))
      log.info(f"Image batch dimension [B x C x H x W]: {x[0].shape}")
      log.info(f"Command batch dimension [B x L x Hin]: {x[1].shape}")
 
