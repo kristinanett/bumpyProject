@@ -12,6 +12,7 @@ import hydra
 from hydra.utils import get_original_cwd
 import logging
 import wandb
+import omegaconf
 
 #create dataset and dataloader
 #dataset = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([Normalize(), ToTensor()]))
@@ -30,16 +31,17 @@ import wandb
 log = logging.getLogger(__name__)
 
 
-def train(cfg, cmnt):
+def train(cfg):
      """Function for training the model in model.py and saving the resulting state dict in models.
      Also produces a training loss graph which is saved in reports/figures"""
      train_params = cfg.train.hyperparams
      model_params = cfg.model.hyperparams
 
      #wandb setup
-     wandb.init(project='bumpyProject', group = "lr experiments", notes=cmnt)
-     config = wandb.config
-     setWandbConfig(train_params, model_params, config)
+     myconfig = omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True) #should work bu doesnt
+     wandb.init(config = myconfig, project='bumpyProject', group = "lr experiments", notes=train_params.comment)
+     #config = wandb.config
+     #setWandbConfig(train_params, model_params, config)
 
      model = Net(model_params)
      if torch.cuda.is_available():
@@ -47,18 +49,18 @@ def train(cfg, cmnt):
           model.cuda()
 
      #initialize the train and validation set
-     dataset = BumpyDataset(
-          get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
-          get_original_cwd() + "/" + train_params.img_data_path, 
-          transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
-          )
-
-     #when running on dtu hpc (also change train config data paths)
      # dataset = BumpyDataset(
-     #      train_params.csv_data_path, 
-     #      train_params.img_data_path, 
+     #      get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
+     #      get_original_cwd() + "/" + train_params.img_data_path, 
      #      transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
      #      )
+
+     #when running on dtu hpc (also change train config data paths)
+     dataset = BumpyDataset(
+          train_params.csv_data_path, 
+          train_params.img_data_path, 
+          transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
+          )
 
      train_size = int(0.8 * len(dataset)) #10433 
      val_size = int(0.15*len(dataset)) #2609
@@ -205,11 +207,9 @@ def setWandbConfig(train_params, model_params, config):
 @hydra.main(config_path= "../conf", config_name="default_config.yaml")
 def main(cfg):
 
-     comment = "0405+1605 data, batchnorm on all conv and lin, lr = 0.01"
-     log.info(comment)
-
+     log.info(cfg.train.hyperparams.comment)
      torch.manual_seed(cfg.train.hyperparams.seed)
-     train(cfg, comment)
+     train(cfg)
 
 if __name__ == "__main__":
      main()
