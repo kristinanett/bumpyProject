@@ -38,10 +38,8 @@ def train(cfg):
      model_params = cfg.model.hyperparams
 
      #wandb setup
-     myconfig = omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True) #should work bu doesnt
+     myconfig = omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True) 
      wandb.init(config = myconfig, project='bumpyProject', group = "lr experiments", notes=train_params.comment)
-     #config = wandb.config
-     #setWandbConfig(train_params, model_params, config)
 
      model = Net(model_params)
      if torch.cuda.is_available():
@@ -170,39 +168,6 @@ def train(cfg):
      ax.set_ylim([0, 2.0])
      os.makedirs("reports/figures/", exist_ok=True)
      plt.savefig("reports/figures/training_curve1.png")
-
-def setWandbConfig(train_params, model_params, config):
-     #training params
-     config.img_data_path = train_params.img_data_path
-     config.csv_data_path = train_params.csv_data_path
-     config.img_rescale = train_params.img_rescale
-     config.crop_ratio = train_params.crop_ratio
-     config.batch_size = train_params.batch_size
-     config.shuffle = train_params.shuffle
-     config.num_epoch = train_params.num_epoch
-     config.seed = train_params.seed
-     config.lr = train_params.lr
-
-     #model params
-     config.img_height = model_params.img_height
-     config.img_width = model_params.img_width
-     config.channels_conv1 = model_params.channels_conv1
-     config.num_filters_conv1 = model_params.num_filters_conv1
-     config.kernel_size_conv1 = model_params.kernel_size_conv1
-     config.stride_conv1 = model_params.stride_conv1
-     config.padding_conv1 = model_params.padding_conv1
-     config.num_filters_conv2 = model_params.num_filters_conv2
-     config.kernel_size_conv2 = model_params.kernel_size_conv2
-     config.stride_conv2 = model_params.stride_conv2
-     config.padding_conv2 = model_params.padding_conv2
-     config.num_l1 = model_params.num_l1
-     config.num_l2 = model_params.num_l2
-     config.input_size_lstm = model_params.input_size_lstm
-     config.hidden_size_lstm = model_params.hidden_size_lstm
-     config.num_layers_lstm = model_params.num_layers_lstm
-     config.num_lout = model_params.num_lout
-     config.p_dropout_conv = model_params.p_dropout_conv
-     config.p_dropout_lin = model_params.p_dropout_lin
 
 @hydra.main(config_path= "../conf", config_name="default_config.yaml")
 def main(cfg):
