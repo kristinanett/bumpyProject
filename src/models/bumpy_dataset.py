@@ -143,7 +143,7 @@ class BumpyDataset(Dataset):
         return [sample['image'], coms_final], imu_final, idx
 
 #Some code to test the dataset is working properly
-# dataset1 = BumpyDataset("data/processed/data.csv","data/processed/imgs/", transform=transforms.Compose([NormalizeIMG(), ToTensor()]))
+# dataset1 = BumpyDataset("/work3/s203129/0405and1605/data.csv","/work3/s203129/0405and1605/imgs/", transform=transforms.Compose([Rescale(366), Crop(0.45), NormalizeIMG(), ToTensor()]))
 # dataloader1 = DataLoader(dataset1, batch_size=1)
 # dataloader_iter1 = iter(dataloader1)
 
@@ -153,7 +153,7 @@ class BumpyDataset(Dataset):
 # dataloader_iter2 = iter(dataloader2)
 
 # for i in range(1):
-#     x1, y1, idx = next(dataloader_iter1)
+#     inputs, labels, idx = next(dataloader_iter1)
 #     x2, y2 = next(dataloader_iter2)
 
 # print(x2[0].type())
