@@ -47,7 +47,7 @@ def predict(cfg, path):
     test_loader_iter = iter(test_loader)
 
     #getting some data
-    for i in range(13):
+    for i in range(2):
         inputs, labels, idx = next(test_loader_iter)
         #12 asphalt
 
@@ -81,6 +81,8 @@ def predict(cfg, path):
     
     path_comparison_table = np.concatenate((prediction_left, prediction_right), axis=1)
     log.info(f"Predicted normalized imu values for left and right path are: \n {path_comparison_table}")
+    log.info(f"Means for normalized imu values for left and right path are: {np.mean(path_comparison_table, axis = 0)}")
+    log.info(f"Stds for normalized imu values for left and right path are: {np.std(path_comparison_table, axis = 0)}")
 
     #making a prediction for the actual path and printing it
     model.eval()
