@@ -1,13 +1,13 @@
 #train_config2.yaml
 hyperparams:
-  comment: "New network test"
-  exp_group: "batch size experiments"
-  img_data_path: "data/processed/imgs/" #/work3/s203129/0405and1605and0106/imgs/
-  csv_data_path: "data/processed/data.csv" #/work3/s203129/0405and1605and0106/data.csv
+  comment: "0405and1605 data new network first test"
+  exp_group: "Network with imu input"
+  img_data_path: "/work3/s203129/0405and1605new/imgs/" #data/processed/imgs/
+  csv_data_path: "/work3/s203129/0405and1605new/data.csv" #data/processed/data.csv
   img_rescale: 122
   crop_ratio: 0.45
   batch_size: 32 #32 #same as paper [8 16 32 48 64 80]
   shuffle: True
   num_epoch: 30
-  seed: 982
+  seed: 521
   lr: 0.001 #0.0001 same as paper

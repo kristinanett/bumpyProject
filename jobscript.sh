@@ -34,4 +34,4 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.9.10
 export PYTHONPATH=/zhome/d7/e/154401/bumpyProject:$PYTHONPATH
 source ../projectenv/bin/activate
 
-python src/models/train_model.py 'train.hyperparams.batch_size=8' 'train.hyperparams.comment="0405and1605and0106 batch size 8"'
+python src/models/train_model2.py

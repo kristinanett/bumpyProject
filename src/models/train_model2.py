@@ -13,7 +13,7 @@ from hydra.utils import get_original_cwd
 import logging
 import wandb
 import omegaconf
-import sys
+
 #create dataset and dataloader
 #dataset = BumpyDataset("data/processed/data.csv","data/processed", transform=transforms.Compose([Normalize(), ToTensor()]))
 #dataloader = DataLoader(dataset, batch_size=1)
@@ -38,8 +38,8 @@ def train(cfg):
      model_params = cfg.model.hyperparams
 
      #wandb setup
-     #myconfig = omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True) 
-     #wandb.init(config = myconfig, project='bumpyProject', group = train_params.exp_group, notes=train_params.comment)
+     myconfig = omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True) 
+     wandb.init(config = myconfig, project='bumpyProject', group = train_params.exp_group, notes=train_params.comment)
 
      model = Net(model_params)
      if torch.cuda.is_available():
@@ -47,18 +47,18 @@ def train(cfg):
           model.cuda()
 
      #initialize the train and validation set
+     # dataset = BumpyDataset(
+     #      get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
+     #      get_original_cwd() + "/" + train_params.img_data_path, 
+     #      transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
+     #      )
+
+     when running on dtu hpc (also change train config data paths)
      dataset = BumpyDataset(
-          get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
-          get_original_cwd() + "/" + train_params.img_data_path, 
+          train_params.csv_data_path, 
+          train_params.img_data_path, 
           transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
           )
-
-     #when running on dtu hpc (also change train config data paths)
-    #  dataset = BumpyDataset(
-    #       train_params.csv_data_path, 
-    #       train_params.img_data_path, 
-    #       transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
-    #       )
 
      train_size = int(0.8 * len(dataset)) #10433 
      val_size = int(0.15*len(dataset)) #2609
@@ -105,17 +105,10 @@ def train(cfg):
 
                # print statistics
                train_loss += batch_loss.item()  # loss.data[0] loss.detach().numpy()
-               if np.isnan(batch_loss.cpu().detach().numpy()):
-                    print(i)
-                    print(train_loss)
-                    print(inputs[1])
-                    print(inputs[2])
-                    print(labels)
-                    sys.exit(0)
 
                if i % 10 == 9:  # print and save training loss every 10 batches
                     log.info("[%d, %5d] train loss: %.3f" % (epoch + 1, i + 1, train_loss / 10))
-                    #wandb.log({"train loss": train_loss / 10})
+                    wandb.log({"train loss": train_loss / 10})
                     train_losses.append(train_loss / 10)  # (loss.data.numpy())
                     train_loss = 0.0
 
@@ -146,7 +139,7 @@ def train(cfg):
                     val_loss = 0.0
 
           mean_loss_epoch = np.mean(np.array(val_loss_wandb))
-          #wandb.log({"validation loss": mean_loss_epoch})
+          wandb.log({"validation loss": mean_loss_epoch})
           val_loss_wandb = []
           
      # create directory if it does no exist already and save model
