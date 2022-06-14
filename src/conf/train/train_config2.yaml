@@ -1,4 +1,4 @@
-#train_config.yaml
+#train_config2.yaml
 hyperparams:
   comment: "New network test"
   exp_group: "batch size experiments"
@@ -9,5 +9,5 @@ hyperparams:
   batch_size: 32 #32 #same as paper [8 16 32 48 64 80]
   shuffle: True
   num_epoch: 30
-  seed: 984
+  seed: 982
   lr: 0.001 #0.0001 same as paper
