@@ -34,4 +34,4 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.9.10
 export PYTHONPATH=/zhome/d7/e/154401/bumpyProject:$PYTHONPATH
 source ../projectenv/bin/activate
 
-python src/models/train_model.py 'train.hyperparams.img_rescale=366' 'model.hyperparams.img_height=202' 'model.hyperparams.img_width=745' 'train.hyperparams.comment="0405and1605 image size original/2"'
+python src/models/train_model.py 'train.hyperparams.batch_size=8' 'train.hyperparams.comment="0405and1605and0106 batch size 8"'

@@ -1,13 +1,13 @@
 #train_config.yaml
 hyperparams:
-  comment: "0405and1605 data batchnorm on all conv and lin lr is 0.01"
-  exp_group: "img size experiments"
-  img_data_path: "/work3/s203129/0405and1605/imgs/" #data/processed/imgs/ #
-  csv_data_path: "/work3/s203129/0405and1605/data.csv" #data/processed/data.csv
+  comment: "0405and1605and0106 data batch size experiments"
+  exp_group: "batch size experiments"
+  img_data_path: "/work3/s203129/0405and1605and0106/imgs/" #data/processed/imgs/ #
+  csv_data_path: "/work3/s203129/0405and1605and0106/data.csv" #data/processed/data.csv
   img_rescale: 122
   crop_ratio: 0.45
-  batch_size: 32 #32 #same as paper
+  batch_size: 32 #32 #same as paper [8 16 32 48 64 80]
   shuffle: True
   num_epoch: 30
-  seed: 621
+  seed: 159
   lr: 0.001 #0.0001 same as paper
