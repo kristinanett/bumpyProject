@@ -53,7 +53,7 @@ def train(cfg):
      #      transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
      #      )
 
-     when running on dtu hpc (also change train config data paths)
+     #when running on dtu hpc (also change train config data paths)
      dataset = BumpyDataset(
           train_params.csv_data_path, 
           train_params.img_data_path, 
