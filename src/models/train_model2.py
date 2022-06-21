@@ -47,18 +47,18 @@ def train(cfg):
           model.cuda()
 
      #initialize the train and validation set
-     dataset = BumpyDataset(
-          get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
-          get_original_cwd() + "/" + train_params.img_data_path, 
-          transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
-          )
-
-     #when running on dtu hpc (also change train config data paths)
      # dataset = BumpyDataset(
-     #      train_params.csv_data_path, 
-     #      train_params.img_data_path, 
+     #      get_original_cwd() + "/" + cfg.train.hyperparams.csv_data_path, 
+     #      get_original_cwd() + "/" + train_params.img_data_path, 
      #      transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
      #      )
+
+     #when running on dtu hpc (also change train config data paths)
+     dataset = BumpyDataset(
+          train_params.csv_data_path, 
+          train_params.img_data_path, 
+          transform=transforms.Compose([Rescale(train_params.img_rescale), Crop(train_params.crop_ratio), NormalizeIMG(), ToTensor()])
+          )
 
      train_size = int(0.8 * len(dataset)) #10433 
      val_size = int(0.15*len(dataset)) #2609
@@ -88,6 +88,7 @@ def train(cfg):
           for i, data in enumerate(train_loader, 0):
                # data contains inputs, labels and inputs is a list of [images, commands]
                inputs, labels, idx = data
+               labels = torch.mean(labels, dim=1) #from [32, 8, 1] to [32, 1] -predicting only mean imu value for each path
 
                if torch.cuda.is_available():
                     inputs, labels = [inputs[0].cuda(), inputs[1].cuda(), inputs[2].cuda()] , labels.cuda()
@@ -119,6 +120,7 @@ def train(cfg):
           for i, data in enumerate(val_loader, 0):
                # data contains inputs, labels and inputs is a list of [images, commands]
                inputs, labels, idx = data
+               labels = torch.mean(labels, dim=1) #from [32, 8, 1] to [32, 1] -predicting only mean imu value for each path
 
                if torch.cuda.is_available():
                     inputs, labels = [inputs[0].cuda(), inputs[1].cuda(), inputs[2].cuda()] , labels.cuda()
