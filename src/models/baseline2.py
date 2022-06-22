@@ -33,7 +33,8 @@ def train_baseline(cfg):
     train_size = int(0.8 * len(dataset)) #10433 
     val_size = len(dataset) - train_size #2609
     train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size], generator = torch.manual_seed(cfg.train.hyperparams.seed))
-    val_loader = DataLoader(val_set, batch_size=train_params.batch_size, shuffle=True, num_workers=4, drop_last = True)
+    train_loader = DataLoader(train_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=4, drop_last = True)
+    val_loader = DataLoader(val_set, batch_size=train_params.batch_size, shuffle=train_params.shuffle, num_workers=4, drop_last = True)
 
     df = pd.read_csv(train_params.csv_data_path, header=0)
     imu_all = np.array([df.iloc[:, 16:]])
