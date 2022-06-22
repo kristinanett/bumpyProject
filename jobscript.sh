@@ -34,4 +34,4 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.9.10
 export PYTHONPATH=/zhome/d7/e/154401/bumpyProject:$PYTHONPATH
 source ../projectenv/bin/activate
 
-python src/models/train_model2.py
+python src/models/train_baseline2.py
