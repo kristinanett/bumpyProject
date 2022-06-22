@@ -61,6 +61,8 @@ def train_baseline(cfg):
             # forward pass
             #output = torch.full((labels.size()[0], 8, 1), imu_standard_mean) #predicting 8 values per path
             output = torch.full((labels.size()[0], 1), imu_standard_mean) #predicting 1 value per path
+            if torch.cuda.is_available():
+                output = output.cuda()
 
             # compute loss
             batch_loss = criterion(output, labels)
