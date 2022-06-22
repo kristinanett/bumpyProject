@@ -47,6 +47,10 @@ def train_baseline(cfg):
 
     log.info("Starting baseline validation")
     for epoch in range(num_epoch):
+
+        for i, data in enumerate(train_loader, 0):
+            pass
+
         val_loss = 0.0
         val_loss_wandb = []
 
@@ -82,10 +86,10 @@ def train_baseline(cfg):
 
     log.info("Finished Training")
     avg = np.sum(np.array(val_losses))/len(val_losses)
-    log.info("Average loss is", avg)
+    log.info(f"Average loss is, {avg}")
     plt.figure(figsize=(9, 9))
-    nrofbatches_train = len(train_set)/batch_size
-    nrofbatches_val = len(val_set)/batch_size
+    nrofbatches_train = len(train_set)/train_params.batch_size
+    nrofbatches_val = len(val_set)/train_params.batch_size
     nrofsavings_val = np.floor(nrofbatches_val / 10.0)
     val_losses_per_epoch = np.mean(np.array(val_losses).reshape(-1, int(nrofsavings_val)), axis=1)
     x_val = np.arange(1, num_epoch+1)*nrofbatches_train
