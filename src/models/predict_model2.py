@@ -58,7 +58,7 @@ def predict(cfg, path):
     test_loader_iter = iter(test_loader)
 
     #getting some data
-    for i in range(3):
+    for i in range(4):
         inputs, labels, idx = next(test_loader_iter)
         #12 asphalt
 
