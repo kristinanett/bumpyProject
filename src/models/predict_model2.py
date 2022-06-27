@@ -1,10 +1,10 @@
 import torch
-from src.models.model import Net
+from src.models.model2 import Net
 import hydra
 from hydra.utils import get_original_cwd
 from omegaconf import OmegaConf
-from src.models.bumpy_dataset import BumpyDataset
-from src.models.bumpy_dataset import Rescale, NormalizeIMG, ToTensor, Crop
+from src.models.bumpy_dataset2 import BumpyDataset
+from src.models.bumpy_dataset2 import Rescale, NormalizeIMG, ToTensor, Crop
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import numpy as np
@@ -58,12 +58,12 @@ def predict(cfg, path):
     test_loader_iter = iter(test_loader)
 
     #getting some data
-    for i in range(1):
+    for i in range(3):
         inputs, labels, idx = next(test_loader_iter)
         #12 asphalt
 
     if torch.cuda.is_available():
-        inputs, labels = [inputs[0].cuda(), inputs[1].cuda()] , labels.cuda()
+        inputs, labels = [inputs[0].cuda(), inputs[1].cuda(), inputs[2].cuda()] , labels.cuda()
 
     #creating two routes (left and right) [1, 8, 2])
     fake_lin_coms_left = []
@@ -83,25 +83,24 @@ def predict(cfg, path):
 
     #making fake predictions
     model.eval()
-    output_left = model([inputs[0], path_left])
+    output_left = model([inputs[0], path_left, inputs[2]])
     prediction_left = np.round(output_left[0].cpu().detach().numpy(), 4)
 
     model.eval()
-    output_right = model([inputs[0], path_right])
+    output_right = model([inputs[0], path_right, inputs[2]])
     prediction_right = np.round(output_right[0].cpu().detach().numpy(), 4)
     
-    path_comparison_table = np.concatenate((prediction_left, prediction_right), axis=1)
-    log.info(f"Predicted normalized imu values for left and right path are: \n {path_comparison_table}")
-    log.info(f"Means for normalized imu values for left and right path are: {np.mean(path_comparison_table, axis = 0)}")
-    log.info(f"Stds for normalized imu values for left and right path are: {np.std(path_comparison_table, axis = 0)}")
+    #path_comparison_table = np.concatenate((prediction_left, prediction_right), axis=1)
+    log.info(f"Predicted normalized imu values for left and right path are: {prediction_left[0], prediction_right[0]}")
 
     #making a prediction for the actual path and printing it
     model.eval()
     output = model(inputs)
     predicted = np.round(output[0].cpu().detach().numpy(), 4)
     actual = np.round(labels[0].cpu().detach().numpy(), 4)
-    comparison_table = np.concatenate((actual, predicted), axis=1)
-    log.info(f"Actual (column0) VS predicted (column1) normalized imu values for this path are: \n {comparison_table}")
+    actual_mean = np.mean(actual, axis = 0)
+    log.info(f"Actual normalized imu values for this path are: \n {actual}")
+    log.info(f"Predicted mean normalized imu value for this path is: {predicted}, actual mean is {actual_mean}")
 
     #showing the denormalized input coms data
     lin_com_mean, lin_com_std, ang_com_mean, ang_com_std, imu_mean, imu_std = dataset.stats
@@ -113,7 +112,8 @@ def predict(cfg, path):
     #getting the original image to show (the one from dataloader is normalized)
     idx = int(idx.numpy()[0])
     img_name = "frame%06i.png" % idx
-    cv_img = cv2.imread(get_original_cwd() + "/" + "data/processed/imgs/" + img_name)
+    #cv_img = cv2.imread(get_original_cwd() + "/" + "data/processed/imgs/" + img_name)
+    cv_img = cv2.imread(get_original_cwd() + "/data/processed/" + "/".join(train_params.img_data_path.split("/")[3:5]) + "/" + img_name)
     rgb_img_original = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB) #(732, 1490, 3)
     h, w = rgb_img_original.shape[:2]
     if h > w:
