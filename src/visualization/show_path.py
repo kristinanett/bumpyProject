@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-debug_dt = 0.25 #random number from the paper
+debug_dt = 0.6 #0.25 in the paper #0.6 seems pretty good for me
 x = 0.38 #distance from front wheel to robot centre
 
 #function from paper
@@ -27,8 +27,6 @@ def project_points(xy):
     batch_size, horizon, _ = xy.shape
     npzfile = np.load("calib_results3.npz")
     ret, mtx, dist, rvecs, tvecs = npzfile["ret"], npzfile["mtx"], npzfile["dist"], npzfile["rvecs"], npzfile["tvecs"]
-    print(rvecs)
-    print(tvecs)
 
     # camera is ~0.48m above ground
     xyz = np.concatenate([xy, -0.48 * np.ones(list(xy.shape[:-1]) + [1])], axis=-1) # 0.48
@@ -38,8 +36,9 @@ def project_points(xy):
     # x = y
     # y = -z
     # z = x
-    xyz[..., 0] += 0.15  # NOTE(greg): shift to be in front of image plane
+    xyz[..., 0] += 0.2 #0.15  # NOTE(greg): shift to be in front of image plane #0.7 seemed good
     xyz_cv = np.stack([xyz[..., 1], -xyz[..., 2], xyz[..., 0]], axis=-1)
+    print(xyz_cv)
     uv, _ = cv2.projectPoints(xyz_cv.reshape(batch_size * horizon, 3), rvec, tvec, camera_matrix, dist)
     uv = uv.reshape(batch_size, horizon, 2)
 
@@ -54,29 +53,23 @@ angvel = linvel/r #angular velocities
 
 pos = commands_to_positions(linvel, angvel)
 pixels = project_points(pos)
-print(pos)
+print("Pixel coordinates") 
 print(pixels)
 
-x_list, y_list = [], []
 img = cv2.imread("data/processed/imgs/frame000878.png")
-im_lims = img.shape
-for pix in pixels:
-    pix_lims = (732., 1490.) #(480., 640.)
-
-    assert pix_lims[1] / pix_lims[0] == im_lims[1] / float(im_lims[0])
-    resize = im_lims[0] / pix_lims[0]
-
-    pix = resize * pix
-    x_list.append(im_lims[1] - pix[:, 0])
-    y_list.append(im_lims[0] - pix[:, 1])
-
-print(x_list) #weird values (not on image)
-print(y_list) #weird values (not on image)
 
 img_draw = img.copy()
 
-for i in range(len(x_list)-1):
-    cv2.line(img_draw, (x_list[i], y_list[i]), (x_list[i+1], y_list[i+1]), (255, 0, 0), 2)
+for i in range(len(pixels[0])-1):
+    if (pixels[0][i][0] < 0) or (pixels[0][i+1][0] < 0) or (pixels[0][i][1] <0) or (pixels[0][i+1][1]) < 0:
+        print("Negative pixel values detected, skipping", i)
+        continue
+    elif (pixels[0][i][0] > 1490) or (pixels[0][i+1][0] > 1490) or (pixels[0][i][1]>732) or (pixels[0][i+1][1] > 732):
+        print("Pixel values out of image. Could not show segment", i)
+        continue
+    else:
+        cv2.line(img_draw, (int(pixels[0][i][0]), int(pixels[0][i][1])), (int(pixels[0][i+1][0]), int(pixels[0][i+1][1])), (255, 0, 0), 3)
+        print("Drawing", i)
 
 cv2.imshow("Show path", img_draw)
 cv2.waitKey()
