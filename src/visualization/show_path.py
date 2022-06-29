@@ -25,11 +25,11 @@ def project_points(xy):
     :return: [batch_size, horizon, 2]
     """
     batch_size, horizon, _ = xy.shape
-    npzfile = np.load("calib_results.npz")
+    npzfile = np.load("calib_results3.npz")
     ret, mtx, dist, rvecs, tvecs = npzfile["ret"], npzfile["mtx"], npzfile["dist"], npzfile["rvecs"], npzfile["tvecs"]
 
-    # camera is ~0.35m above ground
-    xyz = np.concatenate([xy, -0.35 * np.ones(list(xy.shape[:-1]) + [1])], axis=-1) # 0.35
+    # camera is ~0.48m above ground
+    xyz = np.concatenate([xy, -0.48 * np.ones(list(xy.shape[:-1]) + [1])], axis=-1) # 0.48
     rvec = tvec = (0, 0, 0)
     camera_matrix = mtx
 
@@ -47,7 +47,7 @@ def project_points(xy):
 linvel = np.array([[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]])
 
 ang = np.array([[0.2, 0.2, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1]])
-r = x/np.tan(ang) #turning radiuses for all the angles
+r = x/np.tan(-ang) #turning radiuses for all the angles
 angvel = linvel/r #angular velocities
 
 pos = commands_to_positions(linvel, angvel)
