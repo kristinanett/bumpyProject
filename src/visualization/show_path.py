@@ -27,6 +27,8 @@ def project_points(xy):
     batch_size, horizon, _ = xy.shape
     npzfile = np.load("calib_results3.npz")
     ret, mtx, dist, rvecs, tvecs = npzfile["ret"], npzfile["mtx"], npzfile["dist"], npzfile["rvecs"], npzfile["tvecs"]
+    print(rvecs)
+    print(tvecs)
 
     # camera is ~0.48m above ground
     xyz = np.concatenate([xy, -0.48 * np.ones(list(xy.shape[:-1]) + [1])], axis=-1) # 0.48

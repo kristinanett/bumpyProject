@@ -25,12 +25,12 @@ class FilterClass2():
             input_bag = rosbag.Bag(input_file, "r") 
 
             #counting all messages
-            # info_dict = yaml.load(input_bag._get_yaml_info(), Loader=yaml.FullLoader)
+            info_dict = yaml.load(input_bag._get_yaml_info(), Loader=yaml.FullLoader)
             # nrOfMsg = info_dict["messages"]
-            # dur = info_dict['duration']
+            dur = info_dict['duration']
             # print("Bag file %s has %s images and duration %s" % (input_file, nrOfMsg, dur))
             # count += nrOfMsg
-            # d += dur
+            d += dur
 
             #counting messages on specific topic only
             for topic, msg, t in input_bag.read_messages(topics=[image_topic]):
@@ -39,13 +39,18 @@ class FilterClass2():
             countBig += countSmall
             print("Bag file %s has %s images" % (input_file, countSmall))
 
-        print("Finished. Total count is", countBig, "And total duration", d)
+        print("Finished. Total count is", countBig, "And total duration", d, "s")
 
 
-filter = FilterClass2("data/raw/1605/")
-#filter = FilterClass2("data/processed/")
-filter.countMessages()
+filter1 = FilterClass2("data/raw/0405/")
+filter2 = FilterClass2("data/raw/1605/")
+filter3 = FilterClass2("data/raw/0106/")
+filter4 = FilterClass2("data/raw/1506/")
 
+filter1.countMessages()
+filter2.countMessages()
+filter3.countMessages()
+filter4.countMessages()
 #raw
 #0405 Total count is 27614 And total duration 2759.7134279999996 (counting by topic 13804)
 #1605 Total count is 48229 And total duration 2416.0241309999997 (counting by topic 12073)
