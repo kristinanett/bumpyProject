@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
-debug_dt = 0.6 #0.25 in the paper #0.6 seems pretty good for me
+import pandas as pd
+debug_dt = 0.8 #0.25 in the paper #0.6 seems pretty good for me
 x = 0.38 #distance from front wheel to robot centre
 
 #function from paper
@@ -38,25 +39,29 @@ def project_points(xy):
     # z = x
     xyz[..., 0] += 0.2 #0.15  # NOTE(greg): shift to be in front of image plane #0.7 seemed good
     xyz_cv = np.stack([xyz[..., 1], -xyz[..., 2], xyz[..., 0]], axis=-1)
-    print(xyz_cv)
     uv, _ = cv2.projectPoints(xyz_cv.reshape(batch_size * horizon, 3), rvec, tvec, camera_matrix, dist)
     uv = uv.reshape(batch_size, horizon, 2)
 
     return uv
 
+#testing with a fake/generated path
+#linvel = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
+#ang = np.array([0.2, 0.2, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1])
+#img = cv2.imread("data/processed/imgs/frame000878.png")
 
-linvel = np.array([[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]])
+#testing with an image and corresponding path and imu from real data
+img = cv2.imread("data/processed/0405and1605and0106and1506new/imgs/frame001519.png")
+csv_df = pd.read_csv("data/processed/0405and1605and0106and1506new/data.csv", header=0)
+linvel = np.array(csv_df.iloc[1519, 1:9])  #1519 was a pretty good example
+ang = np.array(csv_df.iloc[1519, 9:17])    #1573 turny turn example
 
-ang = np.array([[0.2, 0.2, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1]])
 r = x/np.tan(-ang) #turning radiuses for all the angles
 angvel = linvel/r #angular velocities
 
 pos = commands_to_positions(linvel, angvel)
 pixels = project_points(pos)
-print("Pixel coordinates") 
+print("Pixel coordinates:") 
 print(pixels)
-
-img = cv2.imread("data/processed/imgs/frame000878.png")
 
 img_draw = img.copy()
 
