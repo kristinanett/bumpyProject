@@ -54,6 +54,7 @@ class Analyser():
 analyser1 = Analyser("data/raw/0405/")
 analyser2 = Analyser("data/raw/1605/")
 analyser3 = Analyser("data/raw/0106/")
+analyser4 = Analyser("data/raw/1506/")
 
 
 print(analyser1.df_imu.describe())
@@ -61,6 +62,8 @@ print()
 print(analyser2.df_imu.describe())
 print()
 print(analyser3.df_imu.describe())
+print()
+print(analyser4.df_imu.describe())
 
 print(analyser1.df_imu[analyser1.df_imu > 20.0].count())
 print(analyser2.df_imu[analyser2.df_imu > 20.0].count())
