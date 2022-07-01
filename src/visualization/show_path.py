@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 import pandas as pd
+from colour import Color
+
 debug_dt = 0.8 #0.25 in the paper #0.6 seems pretty good for me
 x = 0.38 #distance from front wheel to robot centre
 
@@ -50,10 +52,12 @@ def project_points(xy):
 #img = cv2.imread("data/processed/imgs/frame000878.png")
 
 #testing with an image and corresponding path and imu from real data
-img = cv2.imread("data/processed/0405and1605and0106and1506new/imgs/frame001519.png")
+img_idx = 1519
+img = cv2.imread("data/processed/0405and1605and0106and1506new/imgs/" + "frame%06i.png" % img_idx)
 csv_df = pd.read_csv("data/processed/0405and1605and0106and1506new/data.csv", header=0)
-linvel = np.array(csv_df.iloc[1519, 1:9])  #1519 was a pretty good example
-ang = np.array(csv_df.iloc[1519, 9:17])    #1573 turny turn example
+linvel = np.array(csv_df.iloc[img_idx, 1:9])  #1519 was a pretty good example
+ang = np.array(csv_df.iloc[img_idx, 9:17])    #1573 turny turn example
+imu = np.array([csv_df.iloc[img_idx, 17:]])
 
 r = x/np.tan(-ang) #turning radiuses for all the angles
 angvel = linvel/r #angular velocities
