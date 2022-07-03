@@ -3,7 +3,7 @@ import cv2
 import pandas as pd
 from colour import Color
 
-debug_dt = 0.8 #0.25 in the paper #0.6 seems pretty good for me
+debug_dt = 0.7 #0.25 in the paper #0.6 seems pretty good for me
 x = 0.38 #distance from front wheel to robot centre
 
 #function from paper
@@ -39,7 +39,7 @@ def project_points(xy):
     # x = y
     # y = -z
     # z = x
-    xyz[..., 0] += 0.2 #0.15  # NOTE(greg): shift to be in front of image plane #0.7 seemed good
+    xyz[..., 0] += 0.3 #0.15  # NOTE(greg): shift to be in front of image plane #0.7 seemed good
     xyz_cv = np.stack([xyz[..., 1], -xyz[..., 2], xyz[..., 0]], axis=-1)
     uv, _ = cv2.projectPoints(xyz_cv.reshape(batch_size * horizon, 3), rvec, tvec, camera_matrix, dist)
     uv = uv.reshape(batch_size, horizon, 2)
@@ -51,35 +51,62 @@ def project_points(xy):
 #ang = np.array([0.2, 0.2, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1])
 #img = cv2.imread("data/processed/imgs/frame000878.png")
 
-#testing with an image and corresponding path and imu from real data
-img_idx = 1519
-img = cv2.imread("data/processed/0405and1605and0106and1506new/imgs/" + "frame%06i.png" % img_idx)
-csv_df = pd.read_csv("data/processed/0405and1605and0106and1506new/data.csv", header=0)
-linvel = np.array(csv_df.iloc[img_idx, 1:9])  #1519 was a pretty good example
-ang = np.array(csv_df.iloc[img_idx, 9:17])    #1573 turny turn example
-imu = np.array([csv_df.iloc[img_idx, 17:]])
+img_idx = 176
+#5376 tall grass with some smoother 
+#176 small grass is apparently better than asphalt
 
-r = x/np.tan(-ang) #turning radiuses for all the angles
-angvel = linvel/r #angular velocities
+while True:
 
-pos = commands_to_positions(linvel, angvel)
-pixels = project_points(pos)
-print("Pixel coordinates:") 
-print(pixels)
+    #testing with an image and corresponding path and imu from real data
+    img = cv2.imread("data/processed/0405and1605and0106and1506new/imgs/" + "frame%06i.png" % img_idx)
+    csv_df = pd.read_csv("data/processed/0405and1605and0106and1506new/data.csv", header=0)
+    linvel = np.array(csv_df.iloc[img_idx, 1:9])  #1519 was a pretty good example #1553 from asphalt to grass
+    ang = np.array(csv_df.iloc[img_idx, 9:17])    #1573 turny turn example
+    imu = np.array([csv_df.iloc[img_idx, 17:]])
 
-img_draw = img.copy()
+    r = x/np.tan(-ang) #turning radiuses for all the angles
+    angvel = linvel/r #angular velocities
 
-for i in range(len(pixels[0])-1):
-    if (pixels[0][i][0] < 0) or (pixels[0][i+1][0] < 0) or (pixels[0][i][1] <0) or (pixels[0][i+1][1]) < 0:
-        print("Negative pixel values detected, skipping", i)
-        continue
-    elif (pixels[0][i][0] > 1490) or (pixels[0][i+1][0] > 1490) or (pixels[0][i][1]>732) or (pixels[0][i+1][1] > 732):
-        print("Pixel values out of image. Could not show segment", i)
-        continue
-    else:
-        cv2.line(img_draw, (int(pixels[0][i][0]), int(pixels[0][i][1])), (int(pixels[0][i+1][0]), int(pixels[0][i+1][1])), (255, 0, 0), 3)
-        print("Drawing", i)
+    #calculating positions and projecting to image plane pixel coordinates
+    pos = commands_to_positions(linvel, angvel)
+    pixels = project_points(pos)
+    #print("Pixel coordinates:") 
+    #print(pixels)
 
-cv2.imshow("Show path", img_draw)
-cv2.waitKey()
+    img_draw = img.copy()
+
+    #colors
+    green = Color("#57bb8a") #Color("green") 
+    yellow = Color("#ffd666") #Color("yellow")
+    red = Color("#e67c73")#Color("red")
+    colors1 = list(green.range_to(yellow,10))
+    colors2 = list(yellow.range_to(red,10))
+    colors = colors1 + colors2
+    print("IMU values", imu)
+
+    #loop over commands
+    for i in range(len(pixels[0])-1):
+        closest_idx = min(range(len(colors)), key=lambda x:abs(x-round(imu[0][i])))
+        print("Closest idx:", closest_idx)
+        col = colors[closest_idx]
+        col_rgb = tuple([int(255*x) for x in col.rgb])
+        if (pixels[0][i][0] < 0) or (pixels[0][i+1][0] < 0) or (pixels[0][i][1] <0) or (pixels[0][i+1][1]) < 0:
+            print("Negative pixel values detected, skipping", i)
+            continue
+        elif (pixels[0][i][0] > 1490) or (pixels[0][i+1][0] > 1490) or (pixels[0][i][1]>732) or (pixels[0][i+1][1] > 732):
+            print("Pixel values out of image. Could not show segment", i)
+            continue
+        else:
+            cv2.line(img_draw, (int(pixels[0][i][0]), int(pixels[0][i][1])), (int(pixels[0][i+1][0]), int(pixels[0][i+1][1])), (col_rgb[2], col_rgb[1], col_rgb[0]), 3)
+            print("Drawing", i)
+
+    cv2.imshow("Show path", img_draw)
+    img_idx += 1
+
+    key = cv2.waitKey(0)
+    while key not in [ord('q'), ord('k')]:
+        key = cv2.waitKey(0)
+    if key == ord('q'):
+        break
+
 cv2.destroyAllWindows()
