@@ -51,7 +51,7 @@ def project_points(xy):
 #ang = np.array([0.2, 0.2, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1])
 #img = cv2.imread("data/processed/imgs/frame000878.png")
 
-img_idx = 176
+img_idx = 5376
 #5376 tall grass with some smoother 
 #176 small grass is apparently better than asphalt
 
@@ -64,8 +64,7 @@ while True:
     ang = np.array(csv_df.iloc[img_idx, 9:17])    #1573 turny turn example
     imu = np.array([csv_df.iloc[img_idx, 17:]])
 
-    r = x/np.tan(-ang) #turning radiuses for all the angles
-    angvel = linvel/r #angular velocities
+    angvel = (linvel*np.tan(-ang))/x #angular velocities (dividing by the turn radius r)
 
     #calculating positions and projecting to image plane pixel coordinates
     pos = commands_to_positions(linvel, angvel)
