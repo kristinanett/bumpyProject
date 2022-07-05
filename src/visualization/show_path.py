@@ -1,6 +1,8 @@
+from itertools import count
 import numpy as np
 import cv2
 import pandas as pd
+import glob
 from colour import Color
 
 debug_dt = 0.7 #0.25 in the paper #0.6 seems pretty good for me
@@ -47,11 +49,11 @@ def project_points(xy):
     return uv
 
 #testing with a fake/generated path
-#linvel = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
-#ang = np.array([0.2, 0.2, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1])
-#img = cv2.imread("data/processed/imgs/frame000878.png")
+# linvel = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
+# ang = np.array([0.2, 0.2, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1])
+# img = cv2.imread("data/processed/imgs/frame000878.png")
 
-img_idx = 5376
+img_idx = 0
 #5376 tall grass with some smoother 
 #176 small grass is apparently better than asphalt
 
@@ -81,12 +83,12 @@ while True:
     colors1 = list(green.range_to(yellow,10))
     colors2 = list(yellow.range_to(red,10))
     colors = colors1 + colors2
-    print("IMU values", imu)
+    #print("IMU values", imu)
 
     #loop over commands
     for i in range(len(pixels[0])-1):
         closest_idx = min(range(len(colors)), key=lambda x:abs(x-round(imu[0][i])))
-        print("Closest idx:", closest_idx)
+        #print("Closest idx:", closest_idx)
         col = colors[closest_idx]
         col_rgb = tuple([int(255*x) for x in col.rgb])
         if (pixels[0][i][0] < 0) or (pixels[0][i+1][0] < 0) or (pixels[0][i][1] <0) or (pixels[0][i+1][1]) < 0:
