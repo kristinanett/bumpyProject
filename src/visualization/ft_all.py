@@ -43,6 +43,7 @@ class FT():
         #looping over all the bag files in one day
         file_count=0
         ft_all_y, ft_all_z, freq_all = np.array([]), np.array([]), np.array([])
+        df_filtered_all = pd.DataFrame([])
         for input_cam_file, com_folder, imu_file in zip(self.cam_file_list, self.mqtt_folder_list, self.imu_file_list):
 
             f_com = open(com_folder + "dir/log000", "r")
@@ -65,12 +66,13 @@ class FT():
             #take Fourier transform of filtered imu data
             ft_y = np.fft.rfft(np.array(df_filtered["gyro_y"]))
             ft_z = np.fft.rfft(np.array(df_filtered["gyro_z"]))
-            freq = np.fft.rfftfreq(df_filtered.shape[0])
+            freq = np.fft.rfftfreq(df_filtered.shape[0], 0.025)
 
             #add this file FT to the combined
             ft_all_y = np.concatenate([ft_all_y, ft_y])
             ft_all_z = np.concatenate([ft_all_z, ft_z])
             freq_all = np.concatenate([freq_all, freq])
+            df_filtered_all = pd.concat([df_filtered_all, df_filtered])
             
             f_com.close()
             f_imu.close()
@@ -78,34 +80,49 @@ class FT():
 
         # close the output file
         print("Finished processing")
-        return ft_all_y, ft_all_z, freq_all
+        return ft_all_y, ft_all_z, freq_all, df_filtered_all
 
 
 input_folders = ["data/raw/0405/", "data/raw/1605/", "data/raw/0106/", "data/raw/1506/"]
 
+#taking a fourier transform of each imu file separately and concatinating
 ft_y_comb, ft_z_comb, freq_comb = np.array([]), np.array([]), np.array([])
+df_comb = pd.DataFrame([])
 for day_folder in input_folders:
     transformer = FT(day_folder)
-    ft_all_y, ft_all_z, freq_all = transformer.transformBags()
+    ft_all_y, ft_all_z, freq_all, df_all = transformer.transformBags()
 
     #add the FT of one day to the combined
     ft_y_comb = np.concatenate([ft_y_comb, ft_all_y])
     ft_z_comb = np.concatenate([ft_z_comb, ft_all_z])
     freq_comb = np.concatenate([freq_comb, freq_all])
+    df_comb = pd.concat([df_comb, df_all])
+
+#taking the fourier transform of the whole imu data at once
+print("Combined IMU length:", len(df_comb))
+ft_y2 = np.fft.rfft(np.array(df_comb["gyro_y"]))
+ft_z2 = np.fft.rfft(np.array(df_comb["gyro_z"]))
+freq2 = np.fft.rfftfreq(df_comb.shape[0], 0.025)
 
 #saving the results to a file
-np.savez("fourier_results.npz", ft_y_comb = ft_y_comb, ft_z_comb=ft_z_comb, freq_comb=freq_comb)
+#np.savez("data/processed/additional/fourier_results.npz", ft_y_comb = ft_y_comb, ft_z_comb=ft_z_comb, freq_comb=freq_comb)
 
 #plotting
-fig, ax = plt.subplots(1, 2)
-ax[0].plot(freq_comb, ft_y_comb)
+fig, ax = plt.subplots(1, 4)
+ax[0].plot(freq_comb, ft_y_comb.real)
 ax[0].set_ylabel('Amplitude', fontsize = 12)
 ax[0].set_xlabel('Frequency (Hz)', fontsize = 12)
 #ax[0].set_ylim(-1000, 1000)
 
-ax[1].plot(freq_comb, ft_z_comb)
+ax[1].plot(freq_comb, ft_z_comb.real)
 ax[1].set_xlabel('Frequency (Hz)', fontsize = 12)
 #ax[1].set_ylim(-1000, 1000)
+
+ax[2].plot(freq2, ft_y2.real)
+ax[2].set_xlabel('Frequency (Hz)', fontsize = 12)
+
+ax[3].plot(freq2, ft_z2.real)
+ax[3].set_xlabel('Frequency (Hz)', fontsize = 12)
 
 plt.show()
 
