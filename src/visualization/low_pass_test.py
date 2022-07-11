@@ -43,7 +43,7 @@ freq = np.fft.rfftfreq(df.shape[0], 0.025)
 #implementing a lowpass filter ##################################################
 order = 6
 fs = 40.0       # sample rate, Hz
-cutoff = 11
+cutoff = 8
 y = butter_lowpass_filter(df["gyro_y"], cutoff, fs, order)
 
 #taking a fourier transform of the lowpassed data ###############################

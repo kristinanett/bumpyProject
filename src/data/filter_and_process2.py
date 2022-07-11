@@ -166,7 +166,7 @@ class ProcessDay():
                     #and that there are imu values in the last second (to obtain a not nan current imu value)
                     if all(i > 20 and i < 60 for i in imus_samples) and len(averaged_df)>0:
                         #saving the message as a png image 
-                        self.writeIMG(bridge, msg, current_img_idx+msg_count)
+                        #self.writeIMG(bridge, msg, current_img_idx+msg_count)
                         # write a row to the csv file
                         row = lin_coms+ang_coms+imus
                         row.insert(0, cur_imu) #adding current imu value

@@ -2,9 +2,7 @@ import rosbag
 import glob
 import csv
 import json
-from cv_bridge import CvBridge
 import pandas as pd
-from sensor_msgs.msg import Image
 import cv2
 import os
 import sys
@@ -87,11 +85,12 @@ class ProcessDay():
         filtered_df = df.loc[(df['times'] > time-500) & (df['times'] < time+500)]
 
         #lowpass filter the raw imu data
-        lowpassed_y = butter_lowpass_filter(filtered_df["gyro_y"], cutoff=11, fs=40, order=6)
-        lowpassed_z = butter_lowpass_filter(filtered_df["gyro_z"], cutoff=11, fs=40, order=6)
+        #lowpassed_y = butter_lowpass_filter(filtered_df["gyro_y"], cutoff=8, fs=40, order=3)
+        #lowpassed_z = butter_lowpass_filter(filtered_df["gyro_z"], cutoff=8, fs=40, order=3)
 
-        sum = (lowpassed_y**2 + lowpassed_z**2).mean() #(filtered_df['gyro_y']**2 + filtered_df['gyro_z']**2).mean()
-        return sum, len(lowpassed_y)
+        #sum = (lowpassed_y**2 + lowpassed_z**2).mean() #
+        sum = (filtered_df['gyro_y']**2 + filtered_df['gyro_z']**2).mean()
+        return sum, len(filtered_df) #len(lowpassed_y)
 
     def getOutputCSV(self):
         f_csv = open(self.output_data_path, self.mode, newline = "")
@@ -129,8 +128,6 @@ class ProcessDay():
             f_imu = open(imu_file, "r")
             df = pd.read_csv(f_imu, sep=" ", usecols=[0,2,3], names=["times","gyro_y", "gyro_z"])
             df = df.dropna() #drop rows with nan values
-
-            bridge = CvBridge()
 
             #accessing the velocity command document to get the time that commands started/stopped sending and saving (to filter out all images taken before/after)
             file_idx = self.cam_file_list.index(input_cam_file)
@@ -178,7 +175,7 @@ class ProcessDay():
                     #and that there are imu values in the last second (to obtain a not nan current imu value)
                     if all(i > 20 and i < 60 for i in imus_samples) and len(averaged_df)>0:
                         #saving the message as a png image 
-                        self.writeIMG(bridge, msg, current_img_idx+msg_count)
+                        #self.writeIMG(bridge, msg, current_img_idx+msg_count)
                         # write a row to the csv file
                         row = lin_coms+ang_coms+imus
                         row.insert(0, cur_imu) #adding current imu value

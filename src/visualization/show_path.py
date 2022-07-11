@@ -53,7 +53,7 @@ def project_points(xy):
 # ang = np.array([0.2, 0.2, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1])
 # img = cv2.imread("data/processed/imgs/frame000878.png")
 
-img_idx = 11100 
+img_idx = 0 #11100
 #2605, 3716, 3769 is an okay example for lowpass vs nopass
 #5225, 5444 nice tall grass with nopass (lopass and nopass work the same)
 #2488, 2538 is good with lowpass
@@ -91,8 +91,8 @@ while True:
     green = Color("#57bb8a") #Color("green") 
     yellow = Color("#ffd666") #Color("yellow")
     red = Color("#e67c73")#Color("red")
-    colors1 = list(green.range_to(yellow,10)) #10 before
-    colors2 = list(yellow.range_to(red,10)) #10 before
+    colors1 = list(green.range_to(yellow,5)) #10 before
+    colors2 = list(yellow.range_to(red,5)) #10 before
     colors = colors1 + colors2
     #print("IMU values", imu)
 
