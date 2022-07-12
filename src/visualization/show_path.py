@@ -53,7 +53,7 @@ def project_points(xy):
 # ang = np.array([0.2, 0.2, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1])
 # img = cv2.imread("data/processed/imgs/frame000878.png")
 
-img_idx = 0 #11100
+img_idx = 5444 #11100
 #2605, 3716, 3769 is an okay example for lowpass vs nopass
 #5225, 5444 nice tall grass with nopass (lopass and nopass work the same)
 #2488, 2538 is good with lowpass
@@ -64,6 +64,7 @@ img_idx = 0 #11100
 #176 small grass is apparently better than asphalt
 
 while True:
+    #dir = "data/processed/lowpass8/"
     dir = "data/processed/lowpass10/"
     #dir = "data/processed/lowpass11/"
     #dir = "data/processed/0405and1605and0106and1506new/"
