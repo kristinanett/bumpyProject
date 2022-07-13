@@ -2,7 +2,8 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-#Different from model.py in the sense that it only predicts one mean value per each path (uses bumpy_dataset2.py and train_model2.py)
+#model2.py was created to be as similar to the paper as possible by also predicting only one mean value per each path
+#model3.py is made to be as close as possible while still predicting 8 values (no linear command layer and output layers)
 
 def compute_conv_dim(dim_size, kernel_size, padding, stride):
     return int((dim_size - kernel_size + 2 * padding) / stride + 1)
@@ -69,15 +70,6 @@ class Net(nn.Module):
                             out_features=model_params.hidden_size_lstm*2,
                             bias=True)
 
-        #command layers
-        self.com_l_1 = nn.Linear(in_features=16,
-                            out_features=16,
-                            bias=True)
-
-        self.com_l_2 = nn.Linear(in_features=16,
-                            out_features=16,
-                            bias=True)
-
         #lstm layer
         self.lstm = nn.LSTM(input_size=model_params.input_size_lstm,
                          hidden_size=model_params.hidden_size_lstm,
@@ -85,13 +77,9 @@ class Net(nn.Module):
                          batch_first = True,
                          bidirectional=False)
         
-        #output layers
-        self.l_out1 = nn.Linear(in_features=model_params.hidden_size_lstm,
-                            out_features=model_params.num_lout1,
-                            bias=True)
-
-        self.l_out2 = nn.Linear(in_features=model_params.num_lout1,
-                            out_features=model_params.num_lout2,
+        #output layer
+        self.l_out = nn.Linear(in_features=model_params.hidden_size_lstm,
+                            out_features=model_params.num_lout,
                             bias=False)
 
         #dropout
@@ -143,20 +131,14 @@ class Net(nn.Module):
         x_comb = F.relu(self.comb_l_1(x_comb))
         x_comb = F.relu(self.comb_l_2(x_comb)) #torch.Size([32, 256]) 
 
-        ################## COMMAND part ####################################
-
-        x_com = torch.flatten(x_com, start_dim=1) #lin1, ang1, lin2, ang2 ... [] torch.Size([32, 16])
-        x_com = F.relu(self.com_l_1(x_com))
-        x_com = self.com_l_2(x_com)
-        x_com = torch.unsqueeze(x_com, dim=-1) #create axis in the end [32, 16, 1]
-
         ################## LSTM part #######################################
 
-        #set image part output as the first hidden state to the LSTM
+        #set image part output as the first hidden state to the LSTM - paper
         c0, h0 = torch.split(x_comb, 128, 1) #torch.Size([32, 128])
         c00 = torch.unsqueeze(c0, dim=0) #[1, 32, 128]
         h00 = torch.unsqueeze(h0, dim=0) #h0[None, :, :].contiguous()
 
+        #set image part output as the first hidden state to the LSTM - mine
         #h0 = x_img.reshape(1, x_com.size(0), x_img.size(-1)).requires_grad_() #1, 32, 128
         #c0 = torch.zeros(1, x_com.size(0), x_img.size(-1)).requires_grad_() #x_com.size(0) is batch size
 
@@ -167,13 +149,11 @@ class Net(nn.Module):
            h00,c00 = h00.cuda() , c00.cuda()
 
         #print(x_com.size()) #torch.Size([1, 8, 2])
-        x_lstm, (h_n, c_n) = self.lstm(x_com, (h00, c00)) #(h0.detach(), c0.detach())) #[32, 16, 128])
-        last_output = x_lstm[:,-1,:] #last element from sequence [32, 128]
+        x_lstm, (h_n, c_n) = self.lstm(x_com, (h00, c00)) #(h0.detach(), c0.detach())) #[32, 8, 128])
     
         ################## OUTPUT part #####################################
 
-        x_out = F.relu(self.l_out1(last_output)) #torch.Size([32, 128])
-        x_out = self.l_out2(x_out) #torch.Size([32, 1]) #torch.Size([32, 8, 1])
+        x_out = self.l_out(x_lstm) #torch.Size([32, 8, 1]) 
 
         return x_out
     

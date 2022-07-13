@@ -1,0 +1,46 @@
+#model_config3.yaml
+hyperparams:
+  img_height: 68 #68 and 248 with resize 122 and crop 0.45
+  img_width: 248
+
+  # define convolutional layer parameters
+  channels_conv1: 3
+  num_filters_conv1: 32
+  kernel_size_conv1: 5
+  stride_conv1: 2
+  padding_conv1: 0
+
+  # define second convolutional layer parameters
+  num_filters_conv2: 64
+  kernel_size_conv2: 3
+  stride_conv2: 2
+  padding_conv2: 0
+
+  # define third convolutional layer parameters
+  num_filters_conv3: 64
+  kernel_size_conv3: 3
+  stride_conv3: 2
+  padding_conv3: 0
+
+  # define linear layer parameters
+  num_l1: 512
+  num_l2: 128
+
+  # define imu input linear layer parameters
+  num_imu_l_1: 32
+  num_imu_l_2: 32
+
+  # define image and imu combined linear layer parameters
+  num_comb_l_1: 128
+  
+  # define LSTM layer parameters
+  input_size_lstm: 2
+  hidden_size_lstm: 128 #(64 same as paper)
+  num_layers_lstm: 8
+  
+  # define output linear layer parameters
+  num_lout: 1
+
+  #define dropout probability for all layers
+  p_dropout_conv: 0.1
+  p_dropout_lin: 0.25
