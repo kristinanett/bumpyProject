@@ -35,7 +35,7 @@ def main(cfg):
 
     log.info("Converting run losses to wandb")
     #define txt file with losses and hydra file with config
-    exp_dir = get_original_cwd() + "/outputs/2022-05-31/17-25-08/"
+    exp_dir = get_original_cwd() + "/outputs/2022-06-02/12-39-00/"
     txt_path =  exp_dir + "train_model.log"
     hydra_path = exp_dir + ".hydra/config.yaml"
 
@@ -45,7 +45,7 @@ def main(cfg):
 
     train_params = cfg.train.hyperparams
     model_params = cfg.model.hyperparams
-    wandb.init(config = myconfig, project='bumpyProject', group = "old experiments", notes="0405+1605 data, cropping, normalizing each channel separately")
+    wandb.init(config = myconfig, project='bumpyProject', group = "old experiments", notes="0405+1605 data, increased LSTM layers from 1 to 8")
     #wandb.init(project='bumpyProject', group = "old experiments", notes="0405 data first training baseline")
 
     #get the losses from the txt file
