@@ -1,6 +1,6 @@
 import torch
-from src.models.bumpy_dataset import BumpyDataset2
-from src.models.bumpy_dataset import Rescale, Normalize, ToTensor
+from src.models.bumpy_dataset import BumpyDataset
+from src.models.bumpy_dataset import Rescale, NormalizeIMG, ToTensor
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import torch.nn as nn
@@ -9,15 +9,15 @@ import os
 import numpy as np
 import pandas as pd
 
-csv_file_path = 'data/processed/data3.csv'
+csv_file_path = "data/processed/0106only/data.csv"
 num_epoch = 20
 batch_size = 32
 
-dataset = BumpyDataset2(csv_file_path, 'data/processed/imgs/', transform=transforms.Compose([Rescale(122), Normalize(), ToTensor()]))
+dataset = BumpyDataset(csv_file_path, 'data/processed/0106only/imgs/', transform=transforms.Compose([Rescale(122), NormalizeIMG(), ToTensor()]))
 train_size = int(0.8 * len(dataset)) #10433 
 val_size = len(dataset) - train_size #2609
 train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
-val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=4)
+val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=4)
 
 df = pd.read_csv(csv_file_path, header=0)
 imu_all = np.array([df.iloc[:, 16:]])
@@ -34,7 +34,7 @@ for epoch in range(num_epoch):
 
     for i, data in enumerate(val_loader, 0):
         # data contains inputs, labels and inputs is a list of [images, commands]
-        inputs, labels = data
+        inputs, labels, idx = data
         #print(labels.size())
 
         # if torch.cuda.is_available():
@@ -51,6 +51,7 @@ for epoch in range(num_epoch):
         val_loss += batch_loss.item()  # loss.data[0] loss.detach().numpy()
 
         if i % 10 == 9:  # print and save validation loss every 10 batches
+            print(labels[0])
             print("[%d, %5d] baseline train loss: %.3f" % (epoch + 1, i + 1, val_loss / 10))
             val_losses.append(val_loss / 10)  # (loss.data.numpy())
             val_loss = 0.0
@@ -70,5 +71,6 @@ plt.plot(x_val, np.array(val_losses_per_epoch), 'b', marker='o', linestyle='-', 
 plt.legend(fontsize=20)
 plt.xlabel("Train step", fontsize=20)
 plt.ylabel("Error", fontsize=20)
-os.makedirs("reports/figures/", exist_ok=True)
-plt.savefig("reports/figures/baseline_validation_curve1.png")
+plt.show()
+# os.makedirs("reports/figures/", exist_ok=True)
+# plt.savefig("reports/figures/baseline_validation_curve1.png")

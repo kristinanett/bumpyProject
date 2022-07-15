@@ -3,6 +3,8 @@ import wandb
 import hydra
 from hydra.utils import get_original_cwd
 import omegaconf
+import logging
+log = logging.getLogger(__name__)
 
 #reading training and validation losses from file
 def getLosses(txt_path):
@@ -28,12 +30,12 @@ def getLosses(txt_path):
     return losses
 
 
-
 @hydra.main()
 def main(cfg):
 
+    log.info("Converting run losses to wandb")
     #define txt file with losses and hydra file with config
-    exp_dir = get_original_cwd() + "/outputs/2022-05-18/22-05-01/" #"/outputs/2022-06-03/19-01-30/"
+    exp_dir = get_original_cwd() + "/outputs/2022-05-31/17-25-08/"
     txt_path =  exp_dir + "train_model.log"
     hydra_path = exp_dir + ".hydra/config.yaml"
 
@@ -43,10 +45,25 @@ def main(cfg):
 
     train_params = cfg.train.hyperparams
     model_params = cfg.model.hyperparams
-    wandb.init(config = myconfig, project='bumpyProject', group = "old experiments", notes="0405 data first training run 20 epochs")
+    wandb.init(config = myconfig, project='bumpyProject', group = "old experiments", notes="0405+1605 data, cropping, normalizing each channel separately")
+    #wandb.init(project='bumpyProject', group = "old experiments", notes="0405 data first training baseline")
 
     #get the losses from the txt file
     losses = getLosses(txt_path)
+
+
+    #for plotting a constant baseline
+    # train_tuple = ("train", 0)
+    # val_tuple = ("val", 0.98)
+
+    # train_losses = []
+    # for i in range(31):
+    #     train_losses.append(train_tuple)
+
+    # losses = []
+    # for i in range(20):
+    #     losses = losses + train_losses
+    #     losses.append(val_tuple)
 
     #fake the training
     for id, loss in losses:
