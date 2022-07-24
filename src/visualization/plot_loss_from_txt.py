@@ -5,7 +5,7 @@ import pandas as pd
 import csv
 import wandb
 
-#This file breaks with some files (yet to be fixed)
+#This code breaks with some files (yet to be fixed)
 file_path =  "outputs/2022-06-03/19-01-30/train_model.log" #"outputs/2022-05-18/22-05-01/train_model.log"
 f = open(file_path, "r")
  
