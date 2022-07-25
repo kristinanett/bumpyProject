@@ -74,6 +74,7 @@ while True:
     linvel = np.array(csv_df.iloc[img_idx, 1:9])  #1519 was a pretty good example #1553 from asphalt to grass
     ang = np.array(csv_df.iloc[img_idx, 9:17])    #1573 turny turn example
     imu = np.array([csv_df.iloc[img_idx, 17:]])
+    print(imu.shape)
 
     angvel = (linvel*np.tan(-ang))/x #angular velocities (dividing by the turn radius r)
 
