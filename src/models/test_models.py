@@ -6,20 +6,33 @@ import logging
 import cv2
 import torch
 import random
-from src.models.model3 import Net
-from src.models.bumpy_dataset2 import BumpyDataset
-from src.models.bumpy_dataset2 import Rescale, NormalizeIMG, ToTensor, Crop
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import pandas as pd
 from colour import Color
 log = logging.getLogger(__name__)
 
-#objective: Feed in an imsge from the testloader and 2 fake paths - run through the model.
-#Visualize the predicted 2 times 8 imu values on the image as colored paths.
+#objective: Feed in an image from the testloader and some paths - run through the model and visualize the predictions as colored paths
+#works with 2 fake paths - left and right and also the actual path taken (can be used for predicting or ground truth)
 
+#changable parameters
+type = 'lowpass' #type of model that will be used either: regular, lowpass or onevalue
 debug_dt = 0.7 #0.25 in the paper #0.6 seems pretty good for me
 x = 0.38 #distance from front wheel to robot centre
+
+if type == "onevalue":
+    from src.models.model2 import Net
+    from src.models.bumpy_dataset2 import BumpyDataset
+    from src.models.bumpy_dataset2 import Rescale, NormalizeIMG, ToTensor, Crop
+elif type == 'regular':
+    from src.models.model import Net
+    from src.models.bumpy_dataset import BumpyDataset
+    from src.models.bumpy_dataset import Rescale, NormalizeIMG, ToTensor, Crop
+else:
+    from src.models.bumpy_dataset2 import BumpyDataset
+    from src.models.bumpy_dataset2 import Rescale, NormalizeIMG, ToTensor, Crop
+    from src.models.model3 import Net
+
 
 def commands_to_positions(linvel, angvel):
     N = len(linvel) #8
@@ -70,15 +83,24 @@ def generatePaths():
         fake_lin_coms_left.append(linear_x_left)
         fake_lin_coms_right.append(linear_x_right)
 
-    path_left = torch.tensor([[[fake_lin_coms_left[0], 0.2], [fake_lin_coms_left[1], 0.2], [fake_lin_coms_left[2], 0.2], [fake_lin_coms_left[3], 0.3], 
+    path_left = torch.tensor([[[fake_lin_coms_left[0], 0.0], [fake_lin_coms_left[1], 0.2], [fake_lin_coms_left[2], 0.2], [fake_lin_coms_left[3], 0.3], 
                             [fake_lin_coms_left[4], 0.2], [fake_lin_coms_left[5], 0.1], [fake_lin_coms_left[6], 0.2], [fake_lin_coms_left[7], 0.2]]]).cuda()
 
-    path_right = torch.tensor([[[fake_lin_coms_right [0], -0.2], [fake_lin_coms_right [1], -0.2], [fake_lin_coms_right [2], -0.2], [fake_lin_coms_right [3], -0.3], 
+    path_right = torch.tensor([[[fake_lin_coms_right [0], 0.0], [fake_lin_coms_right [1], -0.2], [fake_lin_coms_right [2], -0.2], [fake_lin_coms_right [3], -0.3], 
                             [fake_lin_coms_right [4], -0.2], [fake_lin_coms_right [5], -0.1], [fake_lin_coms_right [6], -0.2], [fake_lin_coms_right [7], -0.2]]]).cuda()
 
     return path_left, path_right
 
-def drawPath(img_draw, path, prediction, choice):
+def drawPath(img_draw, path, prediction, choice, groundtruth=False):
+    global type
+    if groundtruth:
+        thickness = 8
+        shift_x = 30
+        shift_y = 10
+    else:
+        thickness = 3
+        shift_x = 0
+        shift_y = 0
     linvel = path[0][:, 0].cpu().numpy()
     ang = path[0][:, 1].cpu().numpy()
 
@@ -98,8 +120,11 @@ def drawPath(img_draw, path, prediction, choice):
 
     #loop over commands
     for i in range(len(pixels[0])-1):
-        closest_idx = min(range(len(colors)), key=lambda x:abs(x-round(prediction[0][i])))
+        if type == "onevalue" and not groundtruth:
+            closest_idx = min(range(len(colors)), key=lambda x:abs(x-round(prediction[0]))) #for one prediction per path
         #print("Closest idx:", closest_idx)
+        else:
+            closest_idx = min(range(len(colors)), key=lambda x:abs(x-round(prediction[0][i]))) #for many predictions
         col = colors[closest_idx]
         col_rgb = tuple([int(255*x) for x in col.rgb])
         if (pixels[0][i][0] < 0) or (pixels[0][i+1][0] < 0) or (pixels[0][i][1] <0) or (pixels[0][i+1][1]) < 0:
@@ -112,27 +137,61 @@ def drawPath(img_draw, path, prediction, choice):
             print("Segment start and end are too far apart, skipping", i)
             continue
         else:
-            cv2.line(img_draw, (int(pixels[0][i][0]), int(pixels[0][i][1])), (int(pixels[0][i+1][0]), int(pixels[0][i+1][1])), (col_rgb[2], col_rgb[1], col_rgb[0]), 3)
+            cv2.line(img_draw, (int(pixels[0][i][0]+shift_x), int(pixels[0][i][1]+shift_y)), (int(pixels[0][i+1][0]+shift_x), int(pixels[0][i+1][1]+shift_y)), (col_rgb[2], col_rgb[1], col_rgb[0]), thickness)
             cv2.putText(img_draw, str(choice), (10,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0), 3, 2)
             print("Drawing", i)
 
     return img_draw
 
-def denormalize(csv_path, predicted_imu):
+def denormalizeIMU(csv_path, predicted_imu):
     
     csv_df = pd.read_csv(get_original_cwd() + "/" + csv_path, header=0)
-    imu_all = np.array([csv_df.iloc[:, 17:]])
+
+    if type == "regular":
+        imu_all = np.array([csv_df.iloc[:, 16:]])
+    else:
+        imu_all = np.array([csv_df.iloc[:, 17:]])
+
     imu_mean, imu_std = np.mean(imu_all), np.std(imu_all)
     denormalized_imu = (predicted_imu*imu_std)+imu_mean
 
     return denormalized_imu
 
+def denormalizeCOMS(csv_path, coms):
+    csv_df = pd.read_csv(get_original_cwd() + "/" + csv_path, header=0)
+
+    if type == "regular":
+        lin_com_all = np.array([csv_df.iloc[:, :8]])
+        ang_com_all = np.array([csv_df.iloc[:, 8:16]])
+    else:
+        lin_com_all = np.array([csv_df.iloc[:, 1:9]])
+        ang_com_all = np.array([csv_df.iloc[:, 9:17]])
+
+    lin_com_mean, lin_com_std = np.mean(lin_com_all), np.std(lin_com_all)
+    ang_com_mean, ang_com_std = np.mean(ang_com_all), np.std(ang_com_all)
+
+    denormalized_lin_coms = (coms[0][:, 0].cpu().numpy()*lin_com_std)+lin_com_mean
+    denormalized_ang_coms = (coms[0][:, 1].cpu().numpy()*ang_com_std)+ang_com_mean
+
+    return torch.from_numpy(np.array([np.concatenate(([denormalized_lin_coms], [denormalized_ang_coms]), axis = 0).T]))
+
 @hydra.main()
 def main(cfg):
+    global onevalue
+
+    #exp_dir = get_original_cwd() + "/outputs/2022-06-13/00-27-50/" #best regular
+    exp_dir = get_original_cwd() + "/outputs/2022-07-13/14-26-00/" #lowpass
+    #exp_dir = get_original_cwd() + "/outputs/2022-06-21/14-51-34/" #one value
+
+    #csv_path = "data/processed//0405and1605/data.csv" #best regular
+    csv_path = "data/processed/lowpass8/data.csv" #lowpass
+    #csv_path = "data/processed/0405and1605and1506new/data.csv" #one value
+
+    #imgs_path = "data/processed//0405and1605/imgs/" #best regular
+    imgs_path = "data/processed/lowpass8/imgs/" #lowpass
+    #imgs_path = "data/processed/0405and1605and1506new/imgs/" #one value
 
     #define experiment folder (to get model weights)
-
-    exp_dir = get_original_cwd() + "/outputs/2022-07-13/14-26-00/" #"/outputs/2022-06-22/19-01-06/" 
     hydra_path = exp_dir + ".hydra/config.yaml"
 
     #load the config
@@ -150,10 +209,7 @@ def main(cfg):
     model.load_state_dict(state_dict)
 
     #initialize the testset and dataloader
-    #the paths are hardcoded because they will break if model was trained on cluster and now tested on local
-    
-    csv_path = "data/processed/lowpass8/data.csv"
-    imgs_path = "data/processed/lowpass8/imgs/"
+    #the paths are hardcoded in the beginning because they will break if model was trained on cluster and now tested on local
 
     dataset = BumpyDataset(
         get_original_cwd() + "/" + csv_path,
@@ -174,19 +230,30 @@ def main(cfg):
         inputs, labels, idx = data
 
         if torch.cuda.is_available():
-            inputs, labels = [inputs[0].cuda(), inputs[1].cuda(), inputs[2].cuda()] , labels.cuda()
+            if type == "regular":
+                inputs, labels = [inputs[0].cuda(), inputs[1].cuda()] , labels.cuda()
+            else:
+                inputs, labels = [inputs[0].cuda(), inputs[1].cuda(), inputs[2].cuda()] , labels.cuda()
 
         #generating a left and a right path
         path_left, path_right = generatePaths()
 
         #making predictions for the fake paths
         model.eval()
-        output_left = model([inputs[0], path_left, inputs[2]]) 
-        prediction_left = np.round(output_left[0].cpu().detach().numpy(), 4)
+        if type == "regular":
+            output_left = model([inputs[0], path_left])
+            output_right = model([inputs[0], path_right])
+        else:
+            output_left = model([inputs[0], path_left, inputs[2]])
+            output_right = model([inputs[0], path_right, inputs[2]])
 
-        model.eval()
-        output_right = model([inputs[0], path_right, inputs[2]])
+        prediction_left = np.round(output_left[0].cpu().detach().numpy(), 4)
         prediction_right = np.round(output_right[0].cpu().detach().numpy(), 4)
+
+        #making a prediction for the actual path
+        output = model(inputs)
+        predicted = np.round(output[0].cpu().detach().numpy(), 4)
+        actual = np.round(labels[0].cpu().detach().numpy(), 4)
 
         #choose the path with the lower sum of 8 imu values
         if np.sum(prediction_left) > np.sum(prediction_right):
@@ -197,8 +264,10 @@ def main(cfg):
             choice = "Unclear"
 
         #denormalize the predicted imu values
-        prediction_left = denormalize(csv_path, prediction_left)
-        prediction_right = denormalize(csv_path, prediction_right)
+        prediction_left = denormalizeIMU(csv_path, prediction_left)
+        prediction_right = denormalizeIMU(csv_path, prediction_right)
+        predicted = denormalizeIMU(csv_path, predicted)
+        actual = denormalizeIMU(csv_path, actual)
 
         #getting the original image for drawing (the one from dataloader is normalized)
         idx = int(idx.numpy()[0])
@@ -208,7 +277,9 @@ def main(cfg):
 
         img_draw = drawPath(img_draw, path_left, prediction_left.T, choice)
         img_draw = drawPath(img_draw, path_right, prediction_right.T, choice)
-
+        #img_draw = drawPath(img_draw, denormalizeCOMS(csv_path, inputs[1]), predicted.T, choice, groundtruth = False)
+        img_draw = drawPath(img_draw, denormalizeCOMS(csv_path, inputs[1]), actual.T, choice, groundtruth = True)
+ 
         cv2.imshow("Show path", img_draw)
 
         key = cv2.waitKey(0)

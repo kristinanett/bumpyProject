@@ -21,7 +21,7 @@ imu_all4 = np.array([df_imu4]).flatten()
 # imu_normalized = imu_normalized.flatten()
 
 print(df.iloc[:, 17:].describe())
-print(df.iloc[:, 17:][df.iloc[:, 17:] < -20].count()) #428, 424, 426, 427, 429, 428, 427, 431 (less than 1% of the whole data)
+print(df.iloc[:, 17:][df.iloc[:, 17:] > 50].count()) #428, 424, 426, 427, 429, 428, 427, 431 (less than 1% of the whole data)
 
 #pandas profiling (saved to bumpyproject/output.html and bumpyproject/output2.htmp)
 # profile = ProfileReport(df, minimal=False)
