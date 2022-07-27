@@ -1,3 +1,4 @@
+from importlib.resources import path
 import numpy as np 
 import hydra
 from hydra.utils import get_original_cwd
@@ -21,14 +22,23 @@ debug_dt = 0.7 #0.25 in the paper #0.6 seems pretty good for me
 x = 0.38 #distance from front wheel to robot centre
 
 if type == "onevalue":
+    exp_dir = "/outputs/2022-06-21/14-51-34/" #one value
+    csv_path = "data/processed/0405and1605and1506new/data.csv" #one value
+    imgs_path = "data/processed/0405and1605and1506new/imgs/" #one value
     from src.models.model2 import Net
     from src.models.bumpy_dataset2 import BumpyDataset
     from src.models.bumpy_dataset2 import Rescale, NormalizeIMG, ToTensor, Crop
 elif type == 'regular':
+    exp_dir = "/outputs/2022-06-13/00-27-50/" #best regular
+    csv_path = "data/processed//0405and1605/data.csv" #best regular
+    imgs_path = "data/processed//0405and1605/imgs/" #best regular
     from src.models.model import Net
     from src.models.bumpy_dataset import BumpyDataset
     from src.models.bumpy_dataset import Rescale, NormalizeIMG, ToTensor, Crop
 else:
+    exp_dir = "/outputs/2022-07-13/14-26-00/" #lowpass
+    csv_path = "data/processed/lowpass8/data.csv" #lowpass
+    imgs_path = "data/processed/lowpass8/imgs/" #lowpass
     from src.models.bumpy_dataset2 import BumpyDataset
     from src.models.bumpy_dataset2 import Rescale, NormalizeIMG, ToTensor, Crop
     from src.models.model3 import Net
@@ -83,12 +93,18 @@ def generatePaths():
         fake_lin_coms_left.append(linear_x_left)
         fake_lin_coms_right.append(linear_x_right)
 
-    path_left = torch.tensor([[[fake_lin_coms_left[0], 0.0], [fake_lin_coms_left[1], 0.2], [fake_lin_coms_left[2], 0.2], [fake_lin_coms_left[3], 0.3], 
-                            [fake_lin_coms_left[4], 0.2], [fake_lin_coms_left[5], 0.1], [fake_lin_coms_left[6], 0.2], [fake_lin_coms_left[7], 0.2]]]).cuda()
 
-    path_right = torch.tensor([[[fake_lin_coms_right [0], 0.0], [fake_lin_coms_right [1], -0.2], [fake_lin_coms_right [2], -0.2], [fake_lin_coms_right [3], -0.3], 
-                            [fake_lin_coms_right [4], -0.2], [fake_lin_coms_right [5], -0.1], [fake_lin_coms_right [6], -0.2], [fake_lin_coms_right [7], -0.2]]]).cuda()
+    fake_ang_coms_left = [0.3,0.3,0.2,0.1,0.0,-0.1,0.0,-0.1]
+    fake_ang_coms_right = [-0.3,-0.3,-0.2,-0.1,0.0,0.1,0.0,0.1] # initial path [0.0,-0.2,-0.2,-0.3,-0.2,-0.1,-0.2,-0.2]
+    path_left = []
+    path_right = []
+    for e in range(len(fake_lin_coms_left)):
+        path_left.append([fake_lin_coms_left[e], fake_ang_coms_left[e]])
+        path_right.append([fake_lin_coms_right[e], fake_ang_coms_right[e]])
 
+    path_left = torch.tensor([path_left]).cuda()
+    path_right = torch.tensor([path_right]).cuda()
+    
     return path_left, path_right
 
 def drawPath(img_draw, path, prediction, choice, groundtruth=False):
@@ -96,9 +112,9 @@ def drawPath(img_draw, path, prediction, choice, groundtruth=False):
     if groundtruth:
         thickness = 8
         shift_x = 30
-        shift_y = 10
+        shift_y = 15
     else:
-        thickness = 3
+        thickness = 8
         shift_x = 0
         shift_y = 0
     linvel = path[0][:, 0].cpu().numpy()
@@ -133,7 +149,7 @@ def drawPath(img_draw, path, prediction, choice, groundtruth=False):
         elif (pixels[0][i][0] > 1490) or (pixels[0][i+1][0] > 1490) or (pixels[0][i][1]>732) or (pixels[0][i+1][1] > 732):
             print("Pixel values out of image. Could not show segment", i)
             continue
-        elif abs(int(pixels[0][i][0]) - int(pixels[0][i+1][0])) > 250 or abs(int(pixels[0][i][1]) - int(pixels[0][i+1][1])) > 70:
+        elif abs(int(pixels[0][i][0]) - int(pixels[0][i+1][0])) > 300 or abs(int(pixels[0][i][1]) - int(pixels[0][i+1][1])) > 100: #(250 and 70)
             print("Segment start and end are too far apart, skipping", i)
             continue
         else:
@@ -177,20 +193,11 @@ def denormalizeCOMS(csv_path, coms):
 
 @hydra.main()
 def main(cfg):
-    global onevalue
+    global type
+    global exp_dir
 
-    #exp_dir = get_original_cwd() + "/outputs/2022-06-13/00-27-50/" #best regular
-    exp_dir = get_original_cwd() + "/outputs/2022-07-13/14-26-00/" #lowpass
-    #exp_dir = get_original_cwd() + "/outputs/2022-06-21/14-51-34/" #one value
-
-    #csv_path = "data/processed//0405and1605/data.csv" #best regular
-    csv_path = "data/processed/lowpass8/data.csv" #lowpass
-    #csv_path = "data/processed/0405and1605and1506new/data.csv" #one value
-
-    #imgs_path = "data/processed//0405and1605/imgs/" #best regular
-    imgs_path = "data/processed/lowpass8/imgs/" #lowpass
-    #imgs_path = "data/processed/0405and1605and1506new/imgs/" #one value
-
+    exp_dir = get_original_cwd() + exp_dir 
+    
     #define experiment folder (to get model weights)
     hydra_path = exp_dir + ".hydra/config.yaml"
 
@@ -278,7 +285,8 @@ def main(cfg):
         img_draw = drawPath(img_draw, path_left, prediction_left.T, choice)
         img_draw = drawPath(img_draw, path_right, prediction_right.T, choice)
         #img_draw = drawPath(img_draw, denormalizeCOMS(csv_path, inputs[1]), predicted.T, choice, groundtruth = False)
-        img_draw = drawPath(img_draw, denormalizeCOMS(csv_path, inputs[1]), actual.T, choice, groundtruth = True)
+        #img_draw = drawPath(img_draw, denormalizeCOMS(csv_path, inputs[1]), actual.T, choice, groundtruth = True) 
+        # change in last line if need to have onevalue groundtruth as mean np.array([np.mean(actual.T)])
  
         cv2.imshow("Show path", img_draw)
 
