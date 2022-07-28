@@ -262,19 +262,21 @@ def main(cfg):
         predicted = np.round(output[0].cpu().detach().numpy(), 4)
         actual = np.round(labels[0].cpu().detach().numpy(), 4)
 
-        #choose the path with the lower sum of 8 imu values
-        if np.sum(prediction_left) > np.sum(prediction_right):
-            choice = "Right"
-        elif np.sum(prediction_left) < np.sum(prediction_right):
-            choice = "Left"
-        else:
-            choice = "Unclear"
-
         #denormalize the predicted imu values
         prediction_left = denormalizeIMU(csv_path, prediction_left)
         prediction_right = denormalizeIMU(csv_path, prediction_right)
         predicted = denormalizeIMU(csv_path, predicted)
         actual = denormalizeIMU(csv_path, actual)
+
+        print(np.mean(prediction_left[:4]))
+        print(np.mean(prediction_right[:4]))
+        #choose the path with the lower sum of 8 denormalized imu values
+        if np.mean(prediction_left[:4]) > np.mean(prediction_right[:4]):
+            choice = "Right"
+        elif np.mean(prediction_left[:4]) < np.mean(prediction_right[:4]):
+            choice = "Left"
+        else:
+            choice = "Unclear"
 
         #getting the original image for drawing (the one from dataloader is normalized)
         idx = int(idx.numpy()[0])
