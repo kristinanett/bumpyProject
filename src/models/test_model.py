@@ -63,8 +63,16 @@ def main(cfg):
           model.cuda()
     model.load_state_dict(state_dict)
 
-    #initialize the testset and dataloader
-    #the paths are hardcoded in the beginning because they will break if model was trained on cluster and now tested on local
+    #getting the number of model parameters - got 7841216
+    # pytorch_train_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    # pytorch_total_params = sum(p.numel() for p in model.parameters())
+    # params3 = sum(dict((p.data_ptr(), p.numel()) for p in model.parameters()).values())
+    # print("Number of total params", pytorch_total_params)
+    # print("Number of trainable params", pytorch_train_params)
+    # print("Number of trainable params2", params3)
+
+    # initialize the testset and dataloader
+    # the paths are hardcoded in the beginning because they will break if model was trained on cluster and now tested on local
 
     dataset = BumpyDataset(
         get_original_cwd() + "/" + csv_path,
