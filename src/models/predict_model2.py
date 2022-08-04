@@ -43,6 +43,7 @@ def predict(cfg, path):
             )
     else:
         csv = "data/processed/" + "/".join(train_params.csv_data_path.split("/")[-2:])
+        print(csv)
         imgs = "data/processed/" + "/".join(train_params.img_data_path.split("/")[3:5]) + "/"
         dataset = BumpyDataset(
             get_original_cwd() + "/" + csv,
