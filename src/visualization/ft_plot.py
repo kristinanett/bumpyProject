@@ -137,7 +137,7 @@ def transformBag(dir, input_cam_file, idxs, output_img_path):
             
     # print("Length before", len(df_filtered))
     df_filtered = df_filtered.loc[(df_filtered['times'] > (start_img_time)) & (df_filtered['times'] < (end_img_time))]
-    print("IMU legnth after filtering", len(df_filtered))
+    print("IMU length after filtering", len(df_filtered))
 
     #take Fourier transform of filtered imu data
     ft_y = np.fft.rfft(np.array(df_filtered["gyro_y"]))
@@ -154,13 +154,13 @@ def transformBag(dir, input_cam_file, idxs, output_img_path):
 
 # input_folders = ["data/raw/0405/", "data/raw/1605/", "data/raw/0106/", "data/raw/1506/"]
 # asphalt_files = ["_2022-05-04-10-15-15_0.bag", "_2022-05-16-14-48-48_0.bag", "_2022-06-01-10-26-24_0.bag", "_2022-06-15-09-50-57_0.bag"]
-# asphalt_idxs = [(0, 170), (1, 114), (364, 551), (286, 843)]
+# asphalt_idxs = [(0, 113), (1, 114), (364, 477), (286, 399)] #end values without clipping to be equal length: 170, 114, 551, 843
 
 # smallgrass_files = ["_2022-05-04-10-00-22_0.bag", "_2022-05-16-13-45-07_0.bag", "_2022-06-01-10-26-24_0.bag", "_2022-06-15-09-56-32_0.bag"]
-# smallgrass_idxs = [(300, 1365), (3, 336), (764, 1265), (0, 386)]
+# smallgrass_idxs = [(300, 413), (3, 116), (764, 877), (0, 113)] #end values without clipping to be equal length: 1365, 336, 1265, 386
 
 # biggrass_files = ["_2022-05-04-13-06-44_0.bag", "_2022-05-16-14-10-40_0.bag", "_2022-06-01-11-07-54_0.bag", "_2022-06-15-10-14-06_0.bag"]
-# biggrass_idxs = [(191, 477), (1, 167), (0, 294), (86, 241)]
+# biggrass_idxs = [(191, 304), (1, 114), (0, 113), (86, 199)] #end values without clipping to be equal length: 477, 167, 294, 241
 
 # files = [asphalt_files, smallgrass_files, biggrass_files]
 # all_idxs = [asphalt_idxs, smallgrass_idxs, biggrass_idxs]
@@ -196,13 +196,13 @@ def transformBag(dir, input_cam_file, idxs, output_img_path):
 #                   ft_z_cob=ft_z_cob,
 #                   freq_cob=freq_cob)
 
-# with open('data/processed/additional/ft_results.pickle', 'wb') as outfile:
+# with open('data/processed/additional/ft_results2.pickle', 'wb') as outfile:
 #     pickle.dump(saved_data, outfile, protocol=pickle.HIGHEST_PROTOCOL)
 
 #############################################################################################################################################
 
 #reading the results from a file for plotting
-with open("data/processed/additional/ft_results.pickle", "rb") as input_file:
+with open("data/processed/additional/ft_results2.pickle", "rb") as input_file:
     data = pickle.load(input_file)
 
 ft_y_all = data["ft_y_all"] 

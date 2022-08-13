@@ -53,7 +53,7 @@ def project_points(xy):
 # ang = np.array([0.2, 0.2, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1])
 # img = cv2.imread("data/processed/imgs/frame000878.png")
 
-img_idx = 5444 #11100
+img_idx = 7593 #5444 #11100
 #2605, 3716, 3769 is an okay example for lowpass vs nopass
 #5225, 5444 nice tall grass with nopass (lopass and nopass work the same)
 #2488, 2538 is good with lowpass
@@ -63,14 +63,25 @@ img_idx = 5444 #11100
 #5376 tall grass with some smoother 
 #176 small grass is apparently better than asphalt
 
+dir = "data/processed/lowpass8/"
+#dir = "data/processed/lowpass10/"
+#dir = "data/processed/lowpass11/"
+#dir = "data/processed/0405and1605and0106and1506new/"
+#testing with an image and corresponding path and imu from real data
+csv_df = pd.read_csv(dir +"data.csv", header=0)
+
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+outfile = "reports/figures/vids/pathvid" +'.mp4'
+out = cv2.VideoWriter(outfile, fourcc, 5.0, (1490, 732))
+print("Saving video file", outfile)
+
+
 while True:
-    #dir = "data/processed/lowpass8/"
-    dir = "data/processed/lowpass10/"
-    #dir = "data/processed/lowpass11/"
-    #dir = "data/processed/0405and1605and0106and1506new/"
-    #testing with an image and corresponding path and imu from real data
+
+    if img_idx == 7810:
+        break
+
     img = cv2.imread(dir+"imgs/" + "frame%06i.png" % img_idx)
-    csv_df = pd.read_csv(dir +"data.csv", header=0)
     linvel = np.array(csv_df.iloc[img_idx, 1:9])  #1519 was a pretty good example #1553 from asphalt to grass
     ang = np.array(csv_df.iloc[img_idx, 9:17])    #1573 turny turn example
     imu = np.array([csv_df.iloc[img_idx, 17:]])
@@ -114,17 +125,22 @@ while True:
             print("Segment start and end are too far apart, skipping", i)
             continue
         else:
-            cv2.line(img_draw, (int(pixels[0][i][0]), int(pixels[0][i][1])), (int(pixels[0][i+1][0]), int(pixels[0][i+1][1])), (col_rgb[2], col_rgb[1], col_rgb[0]), 3)
+            cv2.line(img_draw, (int(pixels[0][i][0]), int(pixels[0][i][1])), (int(pixels[0][i+1][0]), int(pixels[0][i+1][1])), (col_rgb[2], col_rgb[1], col_rgb[0]), 10)
             cv2.putText(img_draw, str(img_idx), (10,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1, 2)
             print("Drawing", i)
 
     cv2.imshow("Show path", img_draw)
+    out.write(img_draw)
     img_idx += 1
 
-    key = cv2.waitKey(0)
-    while key not in [ord('q'), ord('k')]:
-        key = cv2.waitKey(0)
-    if key == ord('q'):
-        break
+    #key = cv2.waitKey(0)
 
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+    # while key not in [ord('q'), ord('k')]:
+    #     key = cv2.waitKey(0)
+    # if key == ord('q'):
+    #     break
+
+out.release()
 cv2.destroyAllWindows()

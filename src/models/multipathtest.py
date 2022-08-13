@@ -100,14 +100,14 @@ def generatePaths(nrofpaths = 5):
     
     return pathlist
 
-def drawPath(img_draw, path, prediction, choice="undefined", groundtruth=False):
+def drawPath(img_draw, path, prediction, choice="undefined", groundtruth=False, circle = False):
     global type
     if groundtruth:
-        thickness = 8
-        shift_x = 30
-        shift_y = 15
+        thickness = 10
+        shift_x = 0
+        shift_y = 0
     else:
-        thickness = 8
+        thickness = 5
         shift_x = 0
         shift_y = 0
     linvel = path[0][:, 0].cpu().numpy()
@@ -148,6 +148,8 @@ def drawPath(img_draw, path, prediction, choice="undefined", groundtruth=False):
         else:
             cv2.line(img_draw, (int(pixels[0][i][0]+shift_x), int(pixels[0][i][1]+shift_y)), (int(pixels[0][i+1][0]+shift_x), int(pixels[0][i+1][1]+shift_y)), (col_rgb[2], col_rgb[1], col_rgb[0]), thickness)
             cv2.putText(img_draw, str(choice), (10,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0), 3, 2)
+            if circle:
+                cv2.circle(img_draw, (int(pixels[0][i][0]+shift_x), int(pixels[0][i][1]+shift_y)), 1, (255, 0, 0), 5)
             print("Drawing", i)
 
     return img_draw
@@ -224,55 +226,66 @@ def main(cfg):
     test_loader = DataLoader(test_set, batch_size=1, shuffle=train_params.shuffle, num_workers=4)
     dataloader_iter = iter(test_loader)
 
-    for i in range(8):
-        #data is in the format: [sample['image'], coms_final, sample['cur_imu']], imu_final, idx
-        inputs, labels, idx = next(dataloader_iter)
+    for i, data in enumerate(test_loader, 0):
 
+    # for i in range(1): #8
+    #     #data is in the format: [sample['image'], coms_final, sample['cur_imu']], imu_final, idx
+    #     inputs, labels, idx = next(dataloader_iter)
 
-    if torch.cuda.is_available():
-        if type == "regular":
-            inputs, labels = [inputs[0].cuda(), inputs[1].cuda()] , labels.cuda()
-        else:
-            inputs, labels = [inputs[0].cuda(), inputs[1].cuda(), inputs[2].cuda()] , labels.cuda()
+        inputs, labels, idx = data
 
-    #generating a left and a right path
-    pathlist = generatePaths(5)
+        if torch.cuda.is_available():
+            if type == "regular":
+                inputs, labels = [inputs[0].cuda(), inputs[1].cuda()] , labels.cuda()
+            else:
+                inputs, labels = [inputs[0].cuda(), inputs[1].cuda(), inputs[2].cuda()] , labels.cuda()
 
-    #making predictions for the fake paths
-    model.eval()
- 
-    predictions=[]
-    for path in pathlist:
-        output = model([inputs[0], path, inputs[2]])
-        prediction = np.round(output[0].cpu().detach().numpy(), 4)
-        prediction = denormalizeIMU(csv_path, prediction)
-        predictions.append(prediction)
+        #generating a left and a right path
+        pathlist = generatePaths(7)
 
-    #making a prediction for the actual path
-    output = model(inputs)
-    predicted = np.round(output[0].cpu().detach().numpy(), 4)
-    actual = np.round(labels[0].cpu().detach().numpy(), 4)
-
-    predicted = denormalizeIMU(csv_path, predicted)
-    actual = denormalizeIMU(csv_path, actual)
-
-    #getting the original image for drawing (the one from dataloader is normalized)
-    idx = int(idx.numpy()[0])
-    img_name = "frame%06i.png" % idx
-    cv_img = cv2.imread(get_original_cwd() + "/" + imgs_path + img_name)
-    img_draw = cv_img.copy()
-
-    choice = str(np.argmin(np.mean(np.array(predictions), axis=1)))
-    print(choice)
-
-    for path, prediction in zip(pathlist, predictions):
-        img_draw = drawPath(img_draw, path, prediction.T, choice)
+        #making predictions for the fake paths
+        model.eval()
     
-    #img_draw = drawPath(img_draw, denormalizeCOMS(csv_path, inputs[1]), predicted.T, choice, groundtruth = False)
-    img_draw = drawPath(img_draw, denormalizeCOMS(csv_path, inputs[1]), actual.T, choice, groundtruth = True) 
+        predictions=[]
+        for path in pathlist:
+            output = model([inputs[0], path, inputs[2]])
+            prediction = np.round(output[0].cpu().detach().numpy(), 4)
+            prediction = denormalizeIMU(csv_path, prediction)
+            predictions.append(prediction)
 
-    cv2.imshow("Show path", img_draw)
-    cv2.waitKey(0) 
+        #making a prediction for the actual path
+        output = model(inputs)
+        predicted = np.round(output[0].cpu().detach().numpy(), 4)
+        actual = np.round(labels[0].cpu().detach().numpy(), 4)
+
+        predicted = denormalizeIMU(csv_path, predicted)
+        actual = denormalizeIMU(csv_path, actual)
+
+        #getting the original image for drawing (the one from dataloader is normalized)
+        idx = int(idx.numpy()[0])
+        img_name = "frame%06i.png" % idx
+        cv_img = cv2.imread(get_original_cwd() + "/" + imgs_path + img_name)
+        img_draw = cv_img.copy()
+
+        choice = str(np.argmin(np.mean(np.array(predictions), axis=1)))
+        print(choice)
+
+        for i, (path, prediction) in enumerate(zip(pathlist, predictions)):
+            if i == int(choice):
+                img_draw = drawPath(img_draw, path, prediction.T, choice, circle=True)
+            else:
+                img_draw = drawPath(img_draw, path, prediction.T, choice)
+        
+        #img_draw = drawPath(img_draw, denormalizeCOMS(csv_path, inputs[1]), predicted.T, choice, groundtruth = False)
+        img_draw = drawPath(img_draw, denormalizeCOMS(csv_path, inputs[1]), actual.T, choice, groundtruth = True) 
+
+        cv2.imshow("Show path", img_draw)
+
+        key = cv2.waitKey(0)
+        while key not in [ord('q'), ord('k')]:
+            key = cv2.waitKey(0)
+        if key == ord('q'):
+            break
   
 #closing all open windows 
 cv2.destroyAllWindows() 
