@@ -1,7 +1,7 @@
 bumpyProject
 ==============================
 
-Master's thesis project in collaboration with Capra Robotics on the topic of using machine learning to estimate terrain properties for off-road navigation. This project is based on the research done by Gregory Kahn at Berkeley [BADGR: An Autonomous Self-Supervised Learning-Based Navigation System](https://sites.google.com/view/badgr). The overall structure of the deep learning model used in the BADGR system which is the starting point of this thesis can be seen below.
+Master's thesis project in collaboration with Capra Robotics on the topic of using machine learning to estimate terrain properties for off-road navigation. This project is based on the research done by Gregory Kahn at Berkeley -> [BADGR: An Autonomous Self-Supervised Learning-Based Navigation System](https://sites.google.com/view/badgr). The overall structure of the deep learning model used in BADGR that is the starting point of this thesis can be seen below.
 
 ![Model](/reports/figures/badgr.png)
 
